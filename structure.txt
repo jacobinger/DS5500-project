@@ -1,0 +1,15 @@
+gnn-target-prediction/
+├── data/
+│   ├── chembl_35.sdf.gz         # Molecular structure data
+│   ├── processed/               # Processed graphs, features, and labels
+│   └── metadata.csv             # Metadata linking compounds, experiments, and targets
+├── src/
+│   ├── data_processing.py       # Scripts to process SDF and other data
+│   ├── model.py                 # GNN model definition
+│   ├── train.py                 # Training script
+│   ├── evaluate.py              # Evaluation script
+│   └── utils.py                 # Utility functions
+├── notebooks/
+│   └── exploratory_analysis.ipynb  # Jupyter notebook for exploration
+├── requirements.txt             # Python dependencies
+└── README.md                    # Project description and instructions
