@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-HIDDEN_CHANNELS = 128
-NUM_EPOCHS = 100
+HIDDEN_CHANNELS = 256  # Increased capacity
+NUM_EPOCHS = 200
 LEARNING_RATE = 0.001
 
 class HeteroGNN(nn.Module):
@@ -30,7 +30,11 @@ class HeteroGNN(nn.Module):
             ('ligand', 'binds_to', 'target'): SAGEConv((hidden_channels, hidden_channels), hidden_channels),
             ('target', 'binds_to', 'ligand'): SAGEConv((hidden_channels, hidden_channels), hidden_channels)
         }, aggr='mean')
-        self.edge_predictor = nn.Linear(2 * hidden_channels, 1)
+        self.edge_predictor = nn.Sequential(
+            nn.Linear(2 * hidden_channels, hidden_channels),
+            nn.ReLU(),
+            nn.Linear(hidden_channels, 1)
+        )
     
     def forward(self, data):
         x_dict = {'ligand': data['ligand'].x, 'target': data['target'].x}
@@ -38,18 +42,26 @@ class HeteroGNN(nn.Module):
             ('ligand', 'binds_to', 'target'): data['ligand', 'binds_to', 'target'].edge_index,
             ('target', 'binds_to', 'ligand'): data['ligand', 'binds_to', 'target'].edge_index.flip(0)
         }
+        
+        logger.info(f"Input x_dict: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
         x_dict = self.conv1(x_dict, edge_index_dict)
         x_dict = {key: torch.relu(x) for key, x in x_dict.items()}
+        logger.info(f"After conv1: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
+        
         x_dict = self.conv2(x_dict, edge_index_dict)
         x_dict = {key: torch.relu(x) for key, x in x_dict.items()}
+        logger.info(f"After conv2: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
+        
         edge_index = data['ligand', 'binds_to', 'target'].edge_index
         ligand_feats = x_dict['ligand'][edge_index[0]]
         target_feats = x_dict['target'][edge_index[1]]
         edge_feats = torch.cat([ligand_feats, target_feats], dim=-1)
         out = self.edge_predictor(edge_feats).squeeze(-1)
+        
+        logger.info(f"Edge prediction output: {out.shape}")
         return out
-    
-def train_model(model, graph, criterion, optimizer, device, num_epochs=NUM_EPOCHS):
+
+def train_model(model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS):
     model.train()
     edge_index = graph['ligand', 'binds_to', 'target'].edge_index
     edge_attr = graph['ligand', 'binds_to', 'target'].edge_attr
@@ -81,6 +93,7 @@ def train_model(model, graph, criterion, optimizer, device, num_epochs=NUM_EPOCH
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
+        scheduler.step()
         
         model.eval()
         with torch.no_grad():
@@ -89,7 +102,6 @@ def train_model(model, graph, criterion, optimizer, device, num_epochs=NUM_EPOCH
             val_loss = criterion(val_out, val_targets)
         logger.info(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {loss.item():.4f}, Val Loss: {val_loss.item():.4f}")
     
-    # Final evaluation
     model.eval()
     with torch.no_grad():
         out = model(graph)
@@ -136,8 +148,9 @@ def main():
 
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
-    train_model(model, graph, criterion, optimizer, device, num_epochs=NUM_EPOCHS)
+    train_model(model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS)
 
     torch.save(model.state_dict(), os.path.join(DATA_DIR, "gnn_model.pt"))
     logger.info("Saved trained GNN model to data/gnn_model.pt")
