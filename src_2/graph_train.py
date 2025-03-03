@@ -26,6 +26,10 @@ class HeteroGNN(nn.Module):
             ('ligand', 'binds_to', 'target'): SAGEConv((ligand_in_channels, target_in_channels), hidden_channels),
             ('target', 'binds_to', 'ligand'): SAGEConv((target_in_channels, ligand_in_channels), hidden_channels)
         }, aggr='mean')
+        self.conv2 = HeteroConv({
+            ('ligand', 'binds_to', 'target'): SAGEConv((hidden_channels, hidden_channels), hidden_channels),
+            ('target', 'binds_to', 'ligand'): SAGEConv((hidden_channels, hidden_channels), hidden_channels)
+        }, aggr='mean')
         self.edge_predictor = nn.Linear(2 * hidden_channels, 1)
     
     def forward(self, data):
@@ -34,26 +38,17 @@ class HeteroGNN(nn.Module):
             ('ligand', 'binds_to', 'target'): data['ligand', 'binds_to', 'target'].edge_index,
             ('target', 'binds_to', 'ligand'): data['ligand', 'binds_to', 'target'].edge_index.flip(0)
         }
-        
-        logger.info(f"Input x_dict: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
-        orig_x_dict = x_dict.copy()
         x_dict = self.conv1(x_dict, edge_index_dict)
-        x_dict['ligand'] = x_dict.get('ligand', orig_x_dict['ligand'])
-        x_dict['target'] = x_dict.get('target', orig_x_dict['target'])
-        logger.info(f"After conv1: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
-        
         x_dict = {key: torch.relu(x) for key, x in x_dict.items()}
-        logger.info(f"After ReLU: ligand={x_dict['ligand'].shape}, target={x_dict['target'].shape}")
-        
+        x_dict = self.conv2(x_dict, edge_index_dict)
+        x_dict = {key: torch.relu(x) for key, x in x_dict.items()}
         edge_index = data['ligand', 'binds_to', 'target'].edge_index
         ligand_feats = x_dict['ligand'][edge_index[0]]
         target_feats = x_dict['target'][edge_index[1]]
         edge_feats = torch.cat([ligand_feats, target_feats], dim=-1)
         out = self.edge_predictor(edge_feats).squeeze(-1)
-        
-        logger.info(f"Edge prediction output: {out.shape}")
         return out
-
+    
 def train_model(model, graph, criterion, optimizer, device, num_epochs=NUM_EPOCHS):
     model.train()
     edge_index = graph['ligand', 'binds_to', 'target'].edge_index
