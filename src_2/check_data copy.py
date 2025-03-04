@@ -8,14 +8,23 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 from scipy.stats import pearsonr
 from sklearn.metrics import mean_absolute_error, r2_score
 from torch_geometric.nn import HeteroConv, SAGEConv
 from torch_geometric.data import HeteroData
 import pandas as pd
 from rdkit import Chem
-from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
 from transformers import AutoTokenizer, AutoModel
+
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -23,15 +32,14 @@ logger = logging.getLogger(__name__)
 DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Hyperparameters
 HIDDEN_CHANNELS = 256
-NUM_EPOCHS = 50
-LEARNING_RATE = 0.001
+NUM_EPOCHS = 100
+LEARNING_RATE = 0.0001
 DROPOUT_P = 0.3
 
-# Load ESM-2 for target embeddings
 tokenizer = AutoTokenizer.from_pretrained("facebook/esm2_t33_650M_UR50D")
-model = AutoModel.from_pretrained("facebook/esm2_t33_650M_UR50D")
+esm_model = AutoModel.from_pretrained("facebook/esm2_t33_650M_UR50D")
+esm_model.eval()
 
 def compute_metrics(predictions, targets):
     predictions_np = predictions.detach().cpu().numpy()
@@ -58,7 +66,7 @@ def visualize_predictions(predictions, targets, title="True vs. Predicted Edge A
     plt.show()
 
 class HeteroGNN(nn.Module):
-    def __init__(self, ligand_in_channels=4, target_in_channels=1280,
+    def __init__(self, ligand_in_channels=1024, target_in_channels=1280,
                  hidden_channels=HIDDEN_CHANNELS, dropout_p=DROPOUT_P):
         super().__init__()
         self.conv1 = HeteroConv({
@@ -66,6 +74,10 @@ class HeteroGNN(nn.Module):
             ('target', 'binds_to', 'ligand'): SAGEConv((target_in_channels, ligand_in_channels), hidden_channels)
         }, aggr='mean')
         self.conv2 = HeteroConv({
+            ('ligand', 'binds_to', 'target'): SAGEConv((hidden_channels, hidden_channels), hidden_channels),
+            ('target', 'binds_to', 'ligand'): SAGEConv((hidden_channels, hidden_channels), hidden_channels)
+        }, aggr='mean')
+        self.conv3 = HeteroConv({
             ('ligand', 'binds_to', 'target'): SAGEConv((hidden_channels, hidden_channels), hidden_channels),
             ('target', 'binds_to', 'ligand'): SAGEConv((hidden_channels, hidden_channels), hidden_channels)
         }, aggr='mean')
@@ -87,6 +99,8 @@ class HeteroGNN(nn.Module):
         x_dict = {key: torch.relu(self.dropout(x)) for key, x in x_dict.items()}
         x_dict = self.conv2(x_dict, edge_index_dict)
         x_dict = {key: torch.relu(self.dropout(x)) for key, x in x_dict.items()}
+        x_dict = self.conv3(x_dict, edge_index_dict)
+        x_dict = {key: torch.relu(self.dropout(x)) for key, x in x_dict.items()}
         edge_index = data['ligand', 'binds_to', 'target'].edge_index
         ligand_feats = x_dict['ligand'][edge_index[0]]
         target_feats = x_dict['target'][edge_index[1]]
@@ -94,7 +108,8 @@ class HeteroGNN(nn.Module):
         out = self.edge_predictor(edge_feats).squeeze(-1)
         return out
 
-def train_model(model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS):
+def train_model(model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, seed=42):
+    torch.manual_seed(seed)
     edge_index = graph['ligand', 'binds_to', 'target'].edge_index
     edge_attr = graph['ligand', 'binds_to', 'target'].edge_attr
     num_edges = edge_index.size(1)
@@ -163,26 +178,24 @@ def get_ligand_features(smiles):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
-    return np.array([
-        Descriptors.MolWt(mol),
-        Descriptors.MolLogP(mol),
-        Descriptors.NumHDonors(mol),
-        Descriptors.NumHAcceptors(mol)
-    ])
+    fp_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
+    fp = fp_gen.GetFingerprint(mol)
+    logger.info(f"Generated ECFP for {smiles[:20]}...: shape {np.array(fp).shape}")
+    return np.array(fp, dtype=np.float32)
 
 def get_target_embedding(sequence):
     inputs = tokenizer(sequence, return_tensors="pt", truncation=True, max_length=1024)
     with torch.no_grad():
-        outputs = model(**inputs)
+        outputs = esm_model(**inputs)
     return outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
 
-def process_chembl_35(db_path, output_path, max_pairs=10000000):
+def process_chembl_35(db_path, output_path, max_pairs=50000):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = [t[0] for t in cursor.fetchall()]
     required_tables = {'molecule_dictionary', 'compound_structures', 'activities', 
-                       'target_dictionary', 'target_components', 'component_sequences'}
+                       'assays', 'target_dictionary', 'target_components', 'component_sequences'}
     if not required_tables.issubset(tables):
         missing = required_tables - set(tables)
         raise ValueError(f"Missing required tables: {missing}")
@@ -208,12 +221,14 @@ def process_chembl_35(db_path, output_path, max_pairs=10000000):
         AND act.standard_units = 'nM'
         AND cs.canonical_smiles IS NOT NULL
         AND csq.sequence IS NOT NULL
+    ORDER BY act.activity_id
     LIMIT ?
     """
     df = pd.read_sql_query(query, conn, params=(max_pairs,))
     conn.close()
 
     logger.info(f"Extracted {len(df)} ligand-target pairs")
+    logger.info(f"Sample row: {df.iloc[0].to_dict()}")
     graph = HeteroData()
     ligand_dict = {}
     target_dict = {}
@@ -233,7 +248,7 @@ def process_chembl_35(db_path, output_path, max_pairs=10000000):
         if ligand_id in ligand_dict and target_id in target_dict:
             ligand_idx = ligand_dict[ligand_id][0]
             target_idx = target_dict[target_id][0]
-            affinity = -np.log10(row["affinity"] / 1e9 + 1e-10)  # Convert nM to p-scale
+            affinity = -np.log10(row["affinity"] / 1e9 + 1e-10)
             edge_list.append([ligand_idx, target_idx])
             edge_attrs.append(affinity)
 
@@ -242,7 +257,11 @@ def process_chembl_35(db_path, output_path, max_pairs=10000000):
     graph["ligand", "binds_to", "target"].edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
     graph["ligand", "binds_to", "target"].edge_attr = torch.tensor(edge_attrs, dtype=torch.float).unsqueeze(-1)
 
+    logger.info(f"Ligand features shape: {graph['ligand'].x.shape}")
     logger.info(f"Graph: {graph}")
+    logger.info(f"Edge attr stats: min={graph['ligand', 'binds_to', 'target'].edge_attr.min()}, "
+                f"max={graph['ligand', 'binds_to', 'target'].edge_attr.max()}, "
+                f"mean={graph['ligand', 'binds_to', 'target'].edge_attr.mean()}")
     torch.save(graph, output_path)
     return graph
 
@@ -252,14 +271,11 @@ def main():
 
     db_path = os.path.join(DATA_DIR, "chembl_35.db")
     output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph.pt")
-    if not os.path.exists(output_path):
-        graph = process_chembl_35(db_path, output_path, max_pairs=1000)
-    else:
-        graph = torch.load(output_path, weights_only=False)
+    graph = process_chembl_35(db_path, output_path, max_pairs=50000)  # Force reprocessing
     graph = graph.to(device)
 
     model = HeteroGNN(
-        ligand_in_channels=4,
+        ligand_in_channels=1024,
         target_in_channels=1280,
         hidden_channels=HIDDEN_CHANNELS,
         dropout_p=DROPOUT_P
@@ -269,7 +285,7 @@ def main():
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
     test_predictions, test_targets = train_model(
-        model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS
+        model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, seed=42
     )
     torch.save(model.state_dict(), os.path.join(DATA_DIR, "gnn_model.pt"))
     logger.info("Saved trained GNN model to data/gnn_model.pt")
