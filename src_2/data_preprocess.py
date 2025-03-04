@@ -13,7 +13,6 @@ from transformers import AutoTokenizer, EsmModel
 import numpy as np
 from Levenshtein import distance  # For simple sequence similarity (pip install python-Levenshtein)
 from torch_geometric.data import Data
-from bs4 import BeautifulSoup
 from requests.exceptions import ReadTimeout
 import re
 
@@ -70,7 +69,7 @@ def load_tsv_data(tsv_path):
     try:
         logger.info(f"Loading TSV file from {tsv_path}")
         # Load a subset (e.g. first 5000 lines) for speed.
-        df = pd.read_csv(tsv_path, sep='\t', engine='python', on_bad_lines='skip', dtype=str, nrows=20000)
+        df = pd.read_csv(tsv_path, sep='\t', engine='python', on_bad_lines='skip', dtype=str, nrows=5000)
         logger.info(f"TSV columns: {df.columns.tolist()}")
         # Identify a target name column (e.g., one that contains 'targetname' or 'target')
         target_name_cols = [col for col in df.columns if "targetname" in col.lower()]
