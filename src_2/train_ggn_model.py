@@ -28,7 +28,7 @@ DATA_DIR = "data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 HIDDEN_CHANNELS = 256
-NUM_EPOCHS = 200
+NUM_EPOCHS = 100
 LEARNING_RATE = 0.001
 DROPOUT_P = 0.3
 
@@ -167,14 +167,14 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using {device} for training")
 
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD.pt")
     if os.path.exists(output_path):
         graph = torch.load(output_path, weights_only=False)
         logger.info(f"Loaded preprocessed graph from {output_path}")
         logger.info(f"Graph: {graph}")
         edge_attrs = graph["ligand", "binds_to", "target"].edge_attr
-        mean = edge_attrs.mean()
-        std = edge_attrs.std()
+        mean, std = edge_attrs.mean(), edge_attrs.std()
+        #Normalize Data: Add normalization to edge_attr (affinities) for training stability
         graph["ligand", "binds_to", "target"].edge_attr = (edge_attrs - mean) / std
         logger.info(f"Normalized edge attrs: mean={mean}, std={std}")
         logger.info(f"Edge attr stats: min={edge_attrs.min()}, max={edge_attrs.max()}, mean={mean}, std={std}")
