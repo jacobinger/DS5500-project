@@ -17,4 +17,4 @@ ranking_df = ranking_df.head(top_n)
 print(len(ranking_df))
 
 ranking_df.to_csv("data/zinc20_ranked_candidates.csv", index=False)
-print(f"✅ Saved top {top_n} ZINC20 candidates to data/zinc20_ranked_candidates.csv")
+print(f"✅ Saved top {top_n} ZINC20 candidates to results/zinc20_ranked_candidates.csv")

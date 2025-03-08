@@ -1,2 +1,22 @@
-/data
-/zinc_data
+# Ignore macOS system files
+.DS_Store
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore shell and C shell scripts
+*.sh
+*.csh
+
+# Ignore model files and large data files
+models/
+data/
+results/
+
+# Ignore virtual environments
+venv/
+.env/
+*.log
