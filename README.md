@@ -11,9 +11,9 @@ The pipeline automates downloading, preprocessing, training, and inference using
 
 ---
 
-## **⚙️ Getting Started**
+## ** Getting Started**
 
-### **🔧 Prerequisites**
+### ** Prerequisites**
 - **Python 3.11** (recommended)
 - **Conda** for environment management
 - **Required packages** (`rdkit`, `numpy`, `torch_geometric`, etc.)
@@ -111,7 +111,7 @@ make run
 
 ---
 
-## **👨 Contributors**
+## ** Contributors**
 - **Jake Inger** ([@jacobinger](https://github.com/jacobinger))
 
 ---
@@ -121,7 +121,7 @@ This project is open-source and available under the **MIT License**.
 
 ---
 
-🚀 **Now you have a professional README!** Let me know if you want to add more details. 
+ **Now you have a professional README!** Let me know if you want to add more details. 
 
 
 ## TODO/net steps
