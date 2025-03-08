@@ -2,8 +2,11 @@ import os
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
 import numpy as np
+import torch
+from torch_geometric.data import HeteroData
+import pickle
 
-# Paths to SMILES files
+# ✅ Step 1: Process ZINC Data and Generate Ligand Features
 smi_files = [
     os.path.join("zinc_data", "BA/AARN/BAAARN.smi"),
     os.path.join("zinc_data", "BA/ABRN/BAABRN.smi"),
@@ -14,7 +17,7 @@ smi_files = [
 
 screening_ligands = {}
 compound_count = 0
-invalid_smiles_count = 0  # Track invalid SMILES for debugging
+invalid_smiles_count = 0
 
 # Create a Morgan fingerprint generator
 morgan_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
@@ -23,7 +26,6 @@ for smi_file in smi_files:
     if os.path.exists(smi_file):
         with open(smi_file, "r") as f:
             lines = f.read().splitlines()
-            # Skip the first line if it looks like a header
             start_idx = 1 if lines and lines[0].startswith("smiles") else 0
             zinc_smiles = [line.split()[0] for line in lines[start_idx:] if line.strip()]
         
@@ -40,30 +42,46 @@ for smi_file in smi_files:
     else:
         print(f"File not found: {smi_file}")
 
-print(f"Generated {len(screening_ligands)} screening ligands")
-print(f"Skipped {invalid_smiles_count} invalid SMILES strings")
+print(f"✅ Generated {len(screening_ligands)} screening ligands")
+print(f"✅ Skipped {invalid_smiles_count} invalid SMILES strings")
 
-# Save the fingerprints for later use
-import pickle
+# ✅ Save ligand fingerprints for later use
 with open("screening_ligands.pkl", "wb") as f:
     pickle.dump(screening_ligands, f)
-    
-import torch
-from torch_geometric.data import HeteroData
-import pickle
 
-# Load stored ligand fingerprints
+# ✅ Step 2: Convert Ligand Data to PyG Format
 with open("screening_ligands.pkl", "rb") as f:
     screening_ligands = pickle.load(f)
 
-# Convert to tensor (ensure correct dtype)
+# Convert to tensor
 ligand_features = torch.tensor(np.array(list(screening_ligands.values()), dtype=np.float32))
 
-# ✅ Create PyG HeteroData
+# ✅ Step 3: Create a Proper `HeteroData` Object
 data = HeteroData()
 
-# ✅ Store ligand node features
-data['ligand'].x = ligand_features  # Ensures ligand exists
+# ✅ Step 4: Store Ligand Features in `HeteroData`
+data['ligand'].x = ligand_features
+data['ligand'].num_nodes = ligand_features.shape[0]
 
-# Debugging: Check data structure
 print("✅ Ligand feature tensor shape:", data['ligand'].x.shape)  # Should be (10000, 1024)
+print("🔍 Node types in data:", list(data.node_types))  # Should include 'ligand'
+
+# ✅ Step 5: Ensure Edge Data Exists Before Adding Self-Loops
+if not hasattr(data, "edge_index_dict"):
+    data.edge_index_dict = {}
+
+# ✅ Step 6: Add Self-Loops to `ligand`
+num_ligands = data['ligand'].num_nodes
+self_edges = torch.arange(num_ligands).repeat(2, 1).to(torch.long)
+
+data.edge_index_dict[('ligand', 'self', 'ligand')] = self_edges
+print("✅ Forced self-loops for 'ligand', edge count:", self_edges.shape)
+
+# ✅ Step 7: Debug Edge Structure Before Saving
+print("\n📌 Full edge structure BEFORE message passing:")
+for edge_type, edge_tensor in data.edge_index_dict.items():
+    print(f"  {edge_type}: Shape {edge_tensor.shape}")
+
+# ✅ Step 8: Save Processed Data
+torch.save(data, "hetero_data.pt")
+print("\n✅ Successfully saved `hetero_data.pt`")
