@@ -1,15 +1,26 @@
-# Ignore macOS system files
+# System Files
 .DS_Store
+*.log
 
-# Ignore Python cache and compiled files
+# Python Cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Ignore shell and C shell scripts
+# Shell Scripts
 *.sh
 *.csh
+
+# Model & Data Files
+*.pt
+*.pkl
+*.npy
+*.csv
+
+# Virtual Environments
+venv/
+.env/
 
 # Ignore model files and large data files
 models/
