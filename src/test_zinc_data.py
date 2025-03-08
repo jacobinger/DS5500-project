@@ -17,3 +17,9 @@ if 'ligand' in data.node_types:
     print("✅ Ligand feature shape:", data['ligand'].x.shape)
 else:
     raise ValueError("❌ ERROR: 'ligand' node type is missing from data!")
+
+
+print("\n📌 Edge types in data:", data.edge_types)
+
+for edge_type in data.edge_types:
+    print(f"  {edge_type}: Shape {data[edge_type].edge_index.shape}")
