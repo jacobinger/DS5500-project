@@ -1,15 +1,15 @@
-gnn-target-prediction/
-├── data/
-│   ├── chembl_35.sdf.gz         # Molecular structure data
-│   ├── processed/               # Processed graphs, features, and labels
-│   └── metadata.csv             # Metadata linking compounds, experiments, and targets
-├── src/
-│   ├── data_processing.py       # Scripts to process SDF and other data
-│   ├── model.py                 # GNN model definition
-│   ├── train.py                 # Training script
-│   ├── evaluate.py              # Evaluation script
-│   └── utils.py                 # Utility functions
-├── notebooks/
-│   └── exploratory_analysis.ipynb  # Jupyter notebook for exploration
-├── requirements.txt             # Python dependencies
-└── README.md                    # Project description and instructions
+📂 project_root/
+├── 📂 src/
+│   ├── 📜 download_zinc_data.py        # Download raw ZINC20 data using file provided
+│   ├── 📜 covert_zinc_data.py          # Convert ZINC data as needed
+│   ├── 📜 preprocess_data.py           # General preprocessing
+│   ├── 📜 preprocess_PD_data.py        # Parkinson’s-specific preprocessing
+│   ├── 📜 process_zinc_data.py         # Process and format ZINC20
+│   ├── 📜 train_SAGEConv_model.py      # Train the GNN model
+│   ├── 📜 predict_zinc_data.py         # Run inference on ZINC20
+│   ├── 📜 zinc20_process_predictions.py # Rank and filter predictions, save to csv file
+├── 📂 data/                            # Store datasets, preprocessed data, and model outputs
+├── 📂 models/                          # Save trained models
+├── 📂 results/                         # Store results like rankings and reports
+├── 📜 Makefile                         # Automate the pipeline
+├── 📜 README.md                        # Document usage
