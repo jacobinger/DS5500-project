@@ -7,7 +7,7 @@ from rdkit.Chem import rdFingerprintGenerator
 from torch_geometric.data import HeteroData
 
 # ✅ Paths
-ZINC20_DIR = "zinc_data"
+ZINC20_DIR = "data/zinc_data"
 OUTPUT_PATH = "data/zinc20_hetero_graph.pt"
 CHEMBL_GRAPH_PATH = "data/chembl_35_hetero_graph_PD.pt"
 

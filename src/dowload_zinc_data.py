@@ -5,7 +5,7 @@ import subprocess
 
 # Path to the command file and output directory
 COMMAND_FILE = "ZINC-downloader-3D-smi.txt"
-OUTPUT_DIR = "zinc_data"
+OUTPUT_DIR = "data/zinc_data"
 SCRIPT_FILE = "download_zinc.sh"  # Changed to .sh
 
 def create_output_directory():
