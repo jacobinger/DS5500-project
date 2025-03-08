@@ -1,10 +1,10 @@
 import os
+import torch
+import pickle
+import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
-import numpy as np
-import torch
 from torch_geometric.data import HeteroData
-import pickle
 
 # ✅ Step 1: Process ZINC Data and Generate Ligand Features
 smi_files = [
@@ -63,24 +63,33 @@ data = HeteroData()
 data['ligand'].x = ligand_features
 data['ligand'].num_nodes = ligand_features.shape[0]
 
-print("✅ Ligand feature tensor shape:", data['ligand'].x.shape)  # Should be (10000, 1024)
-print("🔍 Node types in data:", list(data.node_types))  # Should include 'ligand'
+print("✅ Ligand feature tensor shape:", data['ligand'].x.shape)
+print("🔍 Node types in data:", list(data.node_types))
 
-# ✅ Step 5: Add Self-Loops to `ligand` Using Correct PyG Syntax
-num_ligands = data['ligand'].num_nodes
-self_edges = torch.arange(num_ligands).repeat(2, 1).to(torch.long)
+# ✅ Step 5: Ensure Protein Has Features
+num_proteins = 500  # Choose a reasonable number based on your dataset
+protein_features = torch.randn((num_proteins, 1024))  # Randomly initialize protein features
+data['protein'].x = protein_features
+data['protein'].num_nodes = num_proteins
 
-# ✅ Correctly add self-loops
-if ('ligand', 'self', 'ligand') not in data.edge_types:
-    data[('ligand', 'self', 'ligand')].edge_index = self_edges
-    print("✅ Forced self-loops for 'ligand', edge count:", self_edges.shape)
-else:
-    print("✅ Self-loops already exist for 'ligand'.")
+print("✅ Added protein node features:", data['protein'].x.shape)
 
-# ✅ Step 6: Debug Edge Structure Before Saving
-print("\n📌 Full edge structure BEFORE message passing:")
-for edge_type in data.edge_types:
-    print(f"  {edge_type}: Shape {data[edge_type].edge_index.shape}")
+# ✅ Step 6: Ensure Bidirectional Edges (ligand ↔ protein)
+num_ligands = data['ligand'].num_nodes  # Total ligand count
+num_proteins = data['protein'].num_nodes  # Total protein count
+
+# ✅ Generate valid edges within bounds
+ligand_indices = torch.randint(0, num_ligands, (100,))  # Ensure within ligand range
+protein_indices = torch.randint(0, num_proteins, (100,))  # Ensure within protein range
+
+ligand_protein_edges = torch.stack([ligand_indices, protein_indices], dim=0)
+data[('ligand', 'interacts', 'protein')].edge_index = ligand_protein_edges
+
+# ✅ Reverse edge: Ensure valid indices
+protein_ligand_edges = torch.stack([protein_indices, ligand_indices], dim=0)
+data[('protein', 'interacts', 'ligand')].edge_index = protein_ligand_edges
+
+print("✅ Ensured all edges reference valid node indices.")
 
 # ✅ Step 7: Save Processed Data
 torch.save(data, "hetero_data.pt")
