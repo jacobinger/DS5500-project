@@ -6,22 +6,35 @@ from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
 from torch_geometric.data import HeteroData
 
-# ✅ Step 1: Process ZINC Data and Generate Ligand Features
+# ✅ Paths
+ZINC20_DIR = "zinc_data"
+OUTPUT_PATH = "data/zinc20_hetero_graph.pt"
+CHEMBL_GRAPH_PATH = "data/chembl_35_hetero_graph_PD.pt"
+
+# ✅ Ensure ChEMBL 35 graph exists (for target features)
+if not os.path.exists(CHEMBL_GRAPH_PATH):
+    raise FileNotFoundError(f"ChEMBL graph not found at {CHEMBL_GRAPH_PATH}")
+
+chembl_graph = torch.load(CHEMBL_GRAPH_PATH, weights_only=False)
+target_features = chembl_graph['target'].x  # Use ChEMBL targets
+
+# ✅ Load ZINC20 SMILES Files
 smi_files = [
-    os.path.join("zinc_data", "BA/AARN/BAAARN.smi"),
-    os.path.join("zinc_data", "BA/ABRN/BAABRN.smi"),
-    os.path.join("zinc_data", "BB/AARN/BBAARN.smi"),
-    os.path.join("zinc_data", "BB/ABRN/BBABRN.smi"),
-    os.path.join("zinc_data", "BC/AARN/BCAARN.smi"),
+    os.path.join(ZINC20_DIR, "BA/AARN/BAAARN.smi"),
+    os.path.join(ZINC20_DIR, "BA/ABRN/BAABRN.smi"),
+    os.path.join(ZINC20_DIR, "BB/AARN/BBAARN.smi"),
+    os.path.join(ZINC20_DIR, "BB/ABRN/BBABRN.smi"),
+    os.path.join(ZINC20_DIR, "BC/AARN/BCAARN.smi"),
 ]
 
 screening_ligands = {}
 compound_count = 0
 invalid_smiles_count = 0
 
-# Create a Morgan fingerprint generator
+# ✅ Morgan Fingerprint Generator
 morgan_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
 
+# ✅ Process Ligand Data
 for smi_file in smi_files:
     if os.path.exists(smi_file):
         with open(smi_file, "r") as f:
@@ -40,57 +53,66 @@ for smi_file in smi_files:
             else:
                 invalid_smiles_count += 1
     else:
-        print(f"File not found: {smi_file}")
+        print(f"❌ File not found: {smi_file}")
 
 print(f"✅ Generated {len(screening_ligands)} screening ligands")
 print(f"✅ Skipped {invalid_smiles_count} invalid SMILES strings")
 
-# ✅ Save ligand fingerprints for later use
-with open("screening_ligands.pkl", "wb") as f:
+# ✅ Save Ligand Fingerprints for Later Use
+with open("data/screening_ligands.pkl", "wb") as f:
     pickle.dump(screening_ligands, f)
 
-# ✅ Step 2: Convert Ligand Data to PyG Format
-with open("screening_ligands.pkl", "rb") as f:
+# ✅ Load Ligand Data from Pickle
+with open("data/screening_ligands.pkl", "rb") as f:
     screening_ligands = pickle.load(f)
 
-# Convert to tensor
-ligand_features = torch.tensor(np.array(list(screening_ligands.values()), dtype=np.float32))
+# ✅ Convert to Tensor (Ensure at least 1 ligand exists)
+if len(screening_ligands) > 0:
+    ligand_features = torch.tensor(np.array(list(screening_ligands.values()), dtype=np.float32))
+else:
+    print("❌ No valid ligands were found in ZINC20 data.")
+    ligand_features = torch.empty((0, 1024))  # Empty tensor to prevent errors
 
-# ✅ Step 3: Create a Proper `HeteroData` Object
+# ✅ Create HeteroData Object
 data = HeteroData()
 
-# ✅ Step 4: Store Ligand Features in `HeteroData`
+# ✅ Step 1: Store Ligand Features
 data['ligand'].x = ligand_features
 data['ligand'].num_nodes = ligand_features.shape[0]
 
 print("✅ Ligand feature tensor shape:", data['ligand'].x.shape)
 print("🔍 Node types in data:", list(data.node_types))
 
-# ✅ Step 5: Ensure Protein Has Features
-num_proteins = 500  # Choose a reasonable number based on your dataset
-protein_features = torch.randn((num_proteins, 1024))  # Randomly initialize protein features
-data['protein'].x = protein_features
-data['protein'].num_nodes = num_proteins
+# ✅ Step 2: Store Target Features (from ChEMBL 35)
+data['target'].x = target_features
+data['target'].num_nodes = target_features.shape[0]
 
-print("✅ Added protein node features:", data['protein'].x.shape)
+print("✅ Added target node features:", data['target'].x.shape)
 
-# ✅ Step 6: Ensure Bidirectional Edges (ligand ↔ protein)
-num_ligands = data['ligand'].num_nodes  # Total ligand count
-num_proteins = data['protein'].num_nodes  # Total protein count
+# ✅ Step 3: Generate Ligand-Target Interactions (Only if Ligands Exist)
+num_ligands = data['ligand'].num_nodes
+num_targets = data['target'].num_nodes
 
-# ✅ Generate valid edges within bounds
-ligand_indices = torch.randint(0, num_ligands, (100,))  # Ensure within ligand range
-protein_indices = torch.randint(0, num_proteins, (100,))  # Ensure within protein range
+if num_ligands > 0:
+    num_edges = min(10000, num_ligands * num_targets)  # Limit interactions
+    ligand_indices = torch.randint(0, num_ligands, (num_edges,))
+    target_indices = torch.randint(0, num_targets, (num_edges,))
+    
+    ligand_target_edges = torch.stack([ligand_indices, target_indices], dim=0)
+    data[('ligand', 'binds_to', 'target')].edge_index = ligand_target_edges
 
-ligand_protein_edges = torch.stack([ligand_indices, protein_indices], dim=0)
-data[('ligand', 'interacts', 'protein')].edge_index = ligand_protein_edges
+    # ✅ Reverse Edge
+    target_ligand_edges = torch.stack([target_indices, ligand_indices], dim=0)
+    data[('target', 'binds_to', 'ligand')].edge_index = target_ligand_edges
 
-# ✅ Reverse edge: Ensure valid indices
-protein_ligand_edges = torch.stack([protein_indices, ligand_indices], dim=0)
-data[('protein', 'interacts', 'ligand')].edge_index = protein_ligand_edges
+    print("✅ Generated bidirectional ligand-target edges.")
+else:
+    print("❌ No ligands found, skipping edge generation.")
 
-print("✅ Ensured all edges reference valid node indices.")
+# ✅ Step 4: Save Processed Data
+torch.save(data, OUTPUT_PATH)
+print(f"\n✅ Successfully saved ZINC20 hetero graph at {OUTPUT_PATH}")
 
-# ✅ Step 7: Save Processed Data
-torch.save(data, "hetero_data.pt")
-print("\n✅ Successfully saved `hetero_data.pt`")
+
+##CUT##
+
