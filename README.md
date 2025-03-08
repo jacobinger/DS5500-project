@@ -3,7 +3,7 @@
 ## Getting Started
 
 ### Prerequisites
-- Ensure you have `curl`, `wget`, `csh`, and Python 3 installed.
+- Ensure you have `wget` and Python 3 installed.
 - Install dependencies for `zinc_data.py`:
   ```bash
   conda create -n conda_usml_env python=3.9
