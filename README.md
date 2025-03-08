@@ -1,15 +1,127 @@
-# DS5500-project
+# **DS5500-Project: Drug Discovery with Graph Neural Networks**
+ **Predicting potential Parkinson’s treatments using GNNs and ZINC20 molecules**
 
-## Getting Started
+## ** Overview**
+This project focuses on:
+- **Training a GNN model on ChEMBL 35 data**
+- **Processing ZINC20 molecules**
+- **Ranking potential drug candidates for Parkinson’s disease**
 
-### Prerequisites
-- Ensure you have `wget` and Python 3 installed.
-- Install dependencies for `zinc_data.py`:
-  ```bash
-  conda create -n conda_usml_env python=3.9
-  conda activate conda_usml_env
-  pip install rdkit numpy
+The pipeline automates downloading, preprocessing, training, and inference using **PyTorch Geometric**.
 
+---
+
+## **⚙️ Getting Started**
+
+### **🔧 Prerequisites**
+- **Python 3.11** (recommended)
+- **Conda** for environment management
+- **Required packages** (`rdkit`, `numpy`, `torch_geometric`, etc.)
+
+### ** Setup**
+#### **1️ Create & Activate Virtual Environment**
+```bash
+conda create -n conda_usml_env python=3.13
+conda activate conda_usml_env
+```
+
+#### **2️ Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ** Project Structure**
+```
+📂 DS5500-project/
+├── 📂 src/                   # Source code
+│   ├── 📂 preprocessing/      # Data processing scripts
+│   │   ├── preprocess_data.py
+│   │   ├── preprocess_PD_data.py
+│   │   ├── process_zinc_data.py
+│   ├── 📂 models/             # Model training & inference
+│   │   ├── train_SAGEConv_model.py
+│   │   ├── predict_zinc_data.py
+│   ├── 📂 data_download/       # Scripts for downloading datasets
+│   │   ├── download_zinc_data.py
+│   │   ├── covert_zinc_data.py
+│   ├── 📂 utils/               # Helper functions
+│   │   ├── zinc20_process_predictions.py
+├── 📂 data/                   # Raw & processed data
+├── 📂 models/                 # Trained models
+├── 📂 results/                # Final rankings & reports
+├── 📜 README.md               # Project documentation
+├── 📜 makefile                # Automates workflow
+├── 📜 requirements.txt        # List of dependencies
+```
+
+---
+
+## ** Usage**
+### **1️ Download ZINC20 Data**
+```bash
+make download
+```
+
+### **2️ Preprocess Data**
+```bash
+make preprocess
+make preprocess_pd  # Parkinson’s specific processing
+```
+
+### **3️ Process & Structure ZINC20**
+```bash
+make process
+```
+
+### **4️ Train the GNN Model**
+```bash
+make train
+```
+
+### **5️ Run Predictions on ZINC20**
+```bash
+make predict
+```
+
+### **6️ Rank & Filter Drug Candidates**
+```bash
+make rank
+```
+
+### **7️ Run the Full Pipeline**
+```bash
+make run
+```
+
+---
+
+## ** Results**
+- Outputs a **ranked list of potential Parkinson’s drug candidates**.
+- Results are saved in:  
+   **`results/zinc20_predictions.csv`**
+  
+---
+
+## ** Next Steps**
+ **Perform Molecular Docking**  
+ **Filter with ADMET properties**  
+ **Compare with existing Parkinson’s drugs**
+
+---
+
+## **👨 Contributors**
+- **Jake Inger** ([@jacobinger](https://github.com/jacobinger))
+
+---
+
+## ** License**
+This project is open-source and available under the **MIT License**.
+
+---
+
+🚀 **Now you have a professional README!** Let me know if you want to add more details. 
 
 
 ## TODO/net steps
