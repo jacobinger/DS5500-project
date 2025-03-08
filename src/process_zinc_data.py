@@ -66,22 +66,22 @@ data['ligand'].num_nodes = ligand_features.shape[0]
 print("✅ Ligand feature tensor shape:", data['ligand'].x.shape)  # Should be (10000, 1024)
 print("🔍 Node types in data:", list(data.node_types))  # Should include 'ligand'
 
-# ✅ Step 5: Ensure Edge Data Exists Before Adding Self-Loops
-if not hasattr(data, "edge_index_dict"):
-    data.edge_index_dict = {}
-
-# ✅ Step 6: Add Self-Loops to `ligand`
+# ✅ Step 5: Add Self-Loops to `ligand` Using Correct PyG Syntax
 num_ligands = data['ligand'].num_nodes
 self_edges = torch.arange(num_ligands).repeat(2, 1).to(torch.long)
 
-data.edge_index_dict[('ligand', 'self', 'ligand')] = self_edges
-print("✅ Forced self-loops for 'ligand', edge count:", self_edges.shape)
+# ✅ Correctly add self-loops
+if ('ligand', 'self', 'ligand') not in data.edge_types:
+    data[('ligand', 'self', 'ligand')].edge_index = self_edges
+    print("✅ Forced self-loops for 'ligand', edge count:", self_edges.shape)
+else:
+    print("✅ Self-loops already exist for 'ligand'.")
 
-# ✅ Step 7: Debug Edge Structure Before Saving
+# ✅ Step 6: Debug Edge Structure Before Saving
 print("\n📌 Full edge structure BEFORE message passing:")
-for edge_type, edge_tensor in data.edge_index_dict.items():
-    print(f"  {edge_type}: Shape {edge_tensor.shape}")
+for edge_type in data.edge_types:
+    print(f"  {edge_type}: Shape {data[edge_type].edge_index.shape}")
 
-# ✅ Step 8: Save Processed Data
+# ✅ Step 7: Save Processed Data
 torch.save(data, "hetero_data.pt")
 print("\n✅ Successfully saved `hetero_data.pt`")
