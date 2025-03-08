@@ -65,58 +65,58 @@ def process_chembl_35(db_path, output_path, max_pairs=200000):
         raise ValueError(f"Missing required tables: {missing}")
     
 #Use a list of PD-specific chembl_id values from target_dictionary.
-#     query = """
-# SELECT DISTINCT
-#     md.chembl_id AS ligand_id,
-#     cs.canonical_smiles AS smiles,
-#     td.chembl_id AS target_id,
-#     csq.sequence AS target_sequence,
-#     act.standard_value AS affinity,
-#     act.standard_type AS affinity_type,
-#     act.standard_units AS affinity_units
-# FROM molecule_dictionary md
-# JOIN compound_structures cs ON md.molregno = cs.molregno
-# JOIN activities act ON md.molregno = act.molregno
-# JOIN assays a ON act.assay_id = a.assay_id
-# JOIN target_dictionary td ON a.tid = td.tid
-# JOIN target_components tc ON td.tid = tc.tid
-# JOIN component_sequences csq ON tc.component_id = csq.component_id
-# WHERE act.standard_value IS NOT NULL
-#     AND act.standard_type IN ('IC50', 'Kd', 'Ki')
-#     AND act.standard_units = 'nM'
-#     AND cs.canonical_smiles IS NOT NULL
-#     AND csq.sequence IS NOT NULL
-#     AND td.chembl_id IN ('CHEMBL1795186', 'CHEMBL6151', 'CHEMBL2176839', 'CHEMBL5408', 'CHEMBL6122')
-# ORDER BY act.activity_id
-# LIMIT ?
-# """
+    query = """
+SELECT DISTINCT
+    md.chembl_id AS ligand_id,
+    cs.canonical_smiles AS smiles,
+    td.chembl_id AS target_id,
+    csq.sequence AS target_sequence,
+    act.standard_value AS affinity,
+    act.standard_type AS affinity_type,
+    act.standard_units AS affinity_units
+FROM molecule_dictionary md
+JOIN compound_structures cs ON md.molregno = cs.molregno
+JOIN activities act ON md.molregno = act.molregno
+JOIN assays a ON act.assay_id = a.assay_id
+JOIN target_dictionary td ON a.tid = td.tid
+JOIN target_components tc ON td.tid = tc.tid
+JOIN component_sequences csq ON tc.component_id = csq.component_id
+WHERE act.standard_value IS NOT NULL
+    AND act.standard_type IN ('IC50', 'Kd', 'Ki')
+    AND act.standard_units = 'nM'
+    AND cs.canonical_smiles IS NOT NULL
+    AND csq.sequence IS NOT NULL
+    AND td.chembl_id IN ('CHEMBL1795186', 'CHEMBL6151', 'CHEMBL2176839', 'CHEMBL5408', 'CHEMBL6122')
+ORDER BY act.activity_id
+LIMIT ?
+"""
     # SQL query to extract PD-specific ligand-target pairs
 
-    query = """
-    SELECT DISTINCT
-        md.chembl_id AS ligand_id,
-        cs.canonical_smiles AS smiles,
-        td.chembl_id AS target_id,
-        csq.sequence AS target_sequence,
-        act.standard_value AS affinity,
-        act.standard_type AS affinity_type,
-        act.standard_units AS affinity_units
-    FROM molecule_dictionary md
-    JOIN compound_structures cs ON md.molregno = cs.molregno
-    JOIN activities act ON md.molregno = act.molregno
-    JOIN assays a ON act.assay_id = a.assay_id
-    JOIN target_dictionary td ON a.tid = td.tid
-    JOIN target_components tc ON td.tid = tc.tid
-    JOIN component_sequences csq ON tc.component_id = csq.component_id
-    WHERE act.standard_value IS NOT NULL
-        AND act.standard_type IN ('IC50', 'Kd', 'Ki')
-        AND act.standard_units = 'nM'
-        AND cs.canonical_smiles IS NOT NULL
-        AND csq.sequence IS NOT NULL
-        AND csq.accession IN ('Q5S007', 'P37840', 'P04062', 'Q9BXM7', 'Q99497')
-    ORDER BY act.activity_id
-    LIMIT ?
-    """
+    # query = """
+    # SELECT DISTINCT
+    #     md.chembl_id AS ligand_id,
+    #     cs.canonical_smiles AS smiles,
+    #     td.chembl_id AS target_id,
+    #     csq.sequence AS target_sequence,
+    #     act.standard_value AS affinity,
+    #     act.standard_type AS affinity_type,
+    #     act.standard_units AS affinity_units
+    # FROM molecule_dictionary md
+    # JOIN compound_structures cs ON md.molregno = cs.molregno
+    # JOIN activities act ON md.molregno = act.molregno
+    # JOIN assays a ON act.assay_id = a.assay_id
+    # JOIN target_dictionary td ON a.tid = td.tid
+    # JOIN target_components tc ON td.tid = tc.tid
+    # JOIN component_sequences csq ON tc.component_id = csq.component_id
+    # WHERE act.standard_value IS NOT NULL
+    #     AND act.standard_type IN ('IC50', 'Kd', 'Ki')
+    #     AND act.standard_units = 'nM'
+    #     AND cs.canonical_smiles IS NOT NULL
+    #     AND csq.sequence IS NOT NULL
+    #     AND csq.accession IN ('Q5S007', 'P37840', 'P04062', 'Q9BXM7', 'Q99497')
+    # ORDER BY act.activity_id
+    # LIMIT ?
+    # """
     df = pd.read_sql_query(query, conn, params=(max_pairs,))
     conn.close()
 
@@ -179,12 +179,12 @@ def process_chembl_35(db_path, output_path, max_pairs=200000):
 def main():
     """Main function to process ChEMBL 35 data."""
     db_path = os.path.join(DATA_DIR, "chembl_35.db")
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_2.pt")
     
     if os.path.exists(output_path):
         logger.info(f"Graph already exists at {output_path}. Skipping processing.")
     else:
-        process_chembl_35(db_path, output_path, max_pairs=200000)
+        process_chembl_35(db_path, output_path, max_pairs=2000000000)
 
 if __name__ == "__main__":
     main()
