@@ -1,17 +1,19 @@
  project_root/
 ├── src/
-│   ├── download_zinc_data.py           # Download raw ZINC20 data using file provided
-│   ├── covert_zinc_data.py             # Convert ZINC data as needed
-│   ├── preprocess_data.py              # General preprocessing
-│   ├── preprocess_PD_data.py           # Parkinson’s-specific preprocessing
-│   ├── process_zinc_data.py            # Process and format ZINC20
-│   ├── train_SAGEConv_model.py         # Train the GNN model
-│   ├── predict_zinc_data.py            # Run inference on ZINC20
-│   ├── zinc20_process_predictions.py   # Rank and filter predictions, save to csv file
-├── data/                               # Store datasets, preprocessed data, and model outputs
-│   ├── curl_commands/                  # stores curl commands uses in file for download_zinc_data 
-│   ├── ├── ZINC-downloader-3D-smi.txt  # stores curl commands uses in file for download_zinc_data 
-├── models/                          # Save trained models
-├── results/                         # Store results like rankings and reports
-├── Makefile                         # Automate the pipeline
-├── README.md                        # Document usage
+│   ├── chembl35/                           # files related to the chembl35 data
+│   ├── ├── train_SAGEConv_model.py         # Train the GNN model
+│   ├── ├── preprocess_PD_data.py           # Parkinson’s-specific preprocessing
+│   ├── ├── download_chembl_db.py           #download the entire chembl35 db
+│   ├── zinc20/                             # files related to the Zinc20 data
+│   ├── ├── download_zinc_data.py           # Download raw ZINC20 data using file provided
+│   ├── ├── covert_zinc_data.py             # Convert ZINC data as needed
+│   ├── ├── process_zinc_data.py            # Process and format ZINC20
+│   ├── ├── predict_zinc_data.py            # Run inference on ZINC20
+│   ├── ├── zinc20_process_predictions.py   # Rank and filter predictions, save to csv file
+├── data/                                   # Store datasets, preprocessed data, and model outputs
+│   ├── curl_commands/                      # stores curl commands uses in file for download_zinc_data 
+│   ├── ├── ZINC-downloader-3D-smi.txt      # stores curl commands uses in file for download_zinc_data 
+├── models/                                 # Save trained models
+├── results/                                # Store results like rankings and reports
+├── Makefile                                # Automate the pipeline
+├── README.md                               # Document usage
