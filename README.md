@@ -127,7 +127,7 @@ This project is open-source and available under the **MIT License**.
 ## TODO/net steps
 1. use all of the zinc data downloaded,
 2. find more data from the chembl35 to train on.
-
+- go through current prediction and see if they have any relevance 
 3. Analyze Top Candidates
 
 Cross-check these compounds in PubChem or ChEMBL.
