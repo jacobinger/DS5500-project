@@ -179,7 +179,7 @@ LIMIT ?
 def main():
     """Main function to process ChEMBL 35 data."""
     db_path = os.path.join(DATA_DIR, "chembl_35.db")
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_2.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_3`.pt")
     
     if os.path.exists(output_path):
         logger.info(f"Graph already exists at {output_path}. Skipping processing.")

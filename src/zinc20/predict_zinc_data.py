@@ -3,7 +3,7 @@ import torch
 import os
 import logging
 from torch_geometric.data import HeteroData
-from train_SAGEConv_model import HeteroGNN  # Load the trained model from your existing code
+from chembl35.train_SAGEConv_model import HeteroGNN  # Load the trained model from your existing code
 
 # ✅ Load Trained Model
 model_path = "data/gnn_model.pt"
