@@ -1,30 +1,36 @@
 DS5500-project/
 ├── src/
 │   ├── chembl35/
-│   │   ├── train_SAGEConv_model.py
-│   │   ├── preprocess_PD_data.py
-│   │   ├── download_chembl_db.py
+│   │   ├── train_SAGEConv_model.py         # Existing, unused here
+│   │   ├── preprocess_PD_data.py           # Updated: Extract targets
+│   │   ├── download_chembl_db.py           # Existing
 │   ├── zinc20/
-│   │   ├── download_zinc_data.py
-│   │   ├── convert_zinc_data.py
-│   │   ├── process_zinc_data.py
-│   │   ├── predict_zinc_data.py
-│   │   ├── zinc20_process_predictions.py
-│   ├── retrosynthesis/                     # New directory for retrosynthetic analysis
-│   │   ├── retrosynth_analyze.py           # Perform retrosynthetic analysis on target molecules
-│   │   ├── preprocess_for_retrosynth.py    # Prepare molecules for retrosynthesis
-│   │   ├── validate_synth_routes.py        # Validate and rank synthetic routes
-│   ├── utils/                              # Optional: Shared utilities across modules
-│   │   ├── molecule_utils.py               # Helper functions for molecule processing
+│   │   ├── download_zinc_data.py           # Existing
+│   │   ├── convert_zinc_data.py            # Existing
+│   │   ├── process_zinc_data.py            # Updated: Output SMILES list
+│   │   ├── predict_zinc_data.py            # Existing, unused here
+│   │   ├── zinc20_process_predictions.py   # Existing, unused here
+│   ├── retrosynthesis/
+│   │   ├── retrosynth_analyze.py           # Generate synthetic routes
+│   │   ├── preprocess_for_retrosynth.py    # Prepare target molecules
+│   │   ├── validate_synth_routes.py        # Rank and filter routes
+│   ├── utils/
+│   │   ├── molecule_utils.py               # Helper functions
 ├── data/
 │   ├── curl_commands/
-│   │   ├── ZINC-downloader-3D-smi.txt
-│   ├── retrosynth/                         # Store retrosynthesis inputs/outputs
-│   │   ├── target_molecules.csv            # Predicted novel molecules from ZINC20
-│   │   ├── synthetic_routes/               # Generated synthetic routes
-├── models/
+│   │   ├── ZINC-downloader-3D-smi.txt      # Existing
+│   ├── chembl35/
+│   │   ├── chembl35.db                     # From download_chembl_db.py
+│   │   ├── pd_targets.csv                  # Parkinson’s targets from preprocess_PD_data.py
+│   ├── zinc20/
+│   │   ├── zinc20_processed.csv            # Processed ZINC20 SMILES
+│   ├── retrosynth/
+│   │   ├── target_molecules.csv            # Cleaned targets for retrosynthesis
+│   │   ├── synthetic_routes/               # Generated routes
+│   │   │   ├── routes.csv                  # Raw routes output
 ├── results/
-│   ├── retrosynth_results/                 # Store retrosynthesis results
-├── Makefile                                # Update to include retrosynthesis steps
-├── README.md                               # Update with retrosynthesis instructions
-├── requirements.txt                        # Add retrosynthesis dependencies
+│   ├── retrosynth_results/
+│   │   ├── ranked_routes.csv               # Final ranked routes
+├── Makefile                                # Updated
+├── README.md                               # Updated
+├── requirements.txt                        # Updated

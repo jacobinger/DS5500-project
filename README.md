@@ -138,6 +138,8 @@ This project is open-source and available under the **MIT License**.
 
 
 ## TODO/net steps
+!! REORG FILES TO MATCH STRUCTURE FILE !!
+
 1. use all of the zinc data downloaded,
 2. find more data from the chembl35 to train on.
 - go through current prediction and see if they have any relevance 
