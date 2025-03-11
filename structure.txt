@@ -8,11 +8,9 @@ DS5500-project/
 │   │   ├── convert_zinc_data.py            # Existing
 │   │   ├── process_zinc_data.py            # Output SMILES
 │   ├── retrosynthesis/
-│   │   ├── retrosynth_analyze.py           # Generate routes
-│   │   ├── preprocess_for_retrosynth.py    # Prepare targets
-│   │   ├── train_gcn_model.py              # New: Train GCN
-│   │   ├── gcn_retrosynth_predict.py       # New: Score routes with GCN
-│   │   ├── validate_synth_routes.py        # Updated: Rank with GCN scores
+│   │   ├── train_VGAE_model.py             # Train VGAE
+│   │   ├── VGAE_retrosynth_predict.py      # A function that makes novel molecules 
+│   │   ├── VGAE_against_SAGEConv.py        # Gives affinity score
 │   ├── utils/
 │   │   ├── molecule_utils.py               # Updated: Graph conversion
 ├── data/
