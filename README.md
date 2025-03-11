@@ -90,6 +90,19 @@ make predict
 make rank
 ```
 
+## Retrosynthetic Analysis
+This module enables retrosynthetic planning for novel drug candidates identified from ZINC20 predictions.
+
+### Prerequisites
+- Install additional dependencies: `pip install -r requirements.txt`
+- (Optional) Set up ASKCOS or another retrosynthesis tool.
+
+### Usage
+1. Run ZINC20 prediction pipeline: `make predict_zinc`
+2. Run retrosynthesis pipeline: `make retrosynth_pipeline`
+3. Results are saved in `results/retrosynth_results/`.
+
+
 ### **7️ Run the Full Pipeline**
 ```bash
 make run

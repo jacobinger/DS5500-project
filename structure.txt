@@ -1,19 +1,30 @@
- DS5500-project/
+DS5500-project/
 ├── src/
-│   ├── chembl35/                           # files related to the chembl35 data
-│   ├── ├── train_SAGEConv_model.py         # Train the GNN model
-│   ├── ├── preprocess_PD_data.py           # Parkinson’s-specific preprocessing
-│   ├── ├── download_chembl_db.py           #download the entire chembl35 db
-│   ├── zinc20/                             # files related to the Zinc20 data
-│   ├── ├── download_zinc_data.py           # Download raw ZINC20 data using file provided
-│   ├── ├── covert_zinc_data.py             # Convert ZINC data as needed
-│   ├── ├── process_zinc_data.py            # Process and format ZINC20
-│   ├── ├── predict_zinc_data.py            # Run inference on ZINC20
-│   ├── ├── zinc20_process_predictions.py   # Rank and filter predictions, save to csv file
-├── data/                                   # Store datasets, preprocessed data, and model outputs
-│   ├── curl_commands/                      # stores curl commands uses in file for download_zinc_data 
-│   ├── ├── ZINC-downloader-3D-smi.txt      # stores curl commands uses in file for download_zinc_data 
-├── models/                                 # Save trained models
-├── results/                                # Store results like rankings and reports
-├── Makefile                                # Automate the pipeline
-├── README.md                               # Document usage
+│   ├── chembl35/
+│   │   ├── train_SAGEConv_model.py
+│   │   ├── preprocess_PD_data.py
+│   │   ├── download_chembl_db.py
+│   ├── zinc20/
+│   │   ├── download_zinc_data.py
+│   │   ├── convert_zinc_data.py
+│   │   ├── process_zinc_data.py
+│   │   ├── predict_zinc_data.py
+│   │   ├── zinc20_process_predictions.py
+│   ├── retrosynthesis/                     # New directory for retrosynthetic analysis
+│   │   ├── retrosynth_analyze.py           # Perform retrosynthetic analysis on target molecules
+│   │   ├── preprocess_for_retrosynth.py    # Prepare molecules for retrosynthesis
+│   │   ├── validate_synth_routes.py        # Validate and rank synthetic routes
+│   ├── utils/                              # Optional: Shared utilities across modules
+│   │   ├── molecule_utils.py               # Helper functions for molecule processing
+├── data/
+│   ├── curl_commands/
+│   │   ├── ZINC-downloader-3D-smi.txt
+│   ├── retrosynth/                         # Store retrosynthesis inputs/outputs
+│   │   ├── target_molecules.csv            # Predicted novel molecules from ZINC20
+│   │   ├── synthetic_routes/               # Generated synthetic routes
+├── models/
+├── results/
+│   ├── retrosynth_results/                 # Store retrosynthesis results
+├── Makefile                                # Update to include retrosynthesis steps
+├── README.md                               # Update with retrosynthesis instructions
+├── requirements.txt                        # Add retrosynthesis dependencies

@@ -61,6 +61,26 @@ rank:
 clean:
 	rm -f $(ZINC_DATA) $(MODEL_FILE) $(PREDICTIONS)
 
+# Existing targets (simplified)
+download_zinc: src/zinc20/download_zinc_data.py
+	python src/zinc20/download_zinc_data.py
+
+predict_zinc: src/zinc20/predict_zinc_data.py
+	python src/zinc20/predict_zinc_data.py
+
+# New retrosynthesis targets
+preprocess_retrosynth: src/retrosynthesis/preprocess_for_retrosynth.py
+	python src/retrosynthesis/preprocess_for_retrosynth.py
+
+run_retrosynth: src/retrosynthesis/retrosynth_analyze.py
+	python src/retrosynthesis/retrosynth_analyze.py
+
+validate_routes: src/retrosynthesis/validate_synth_routes.py
+	python src/retrosynthesis/validate_synth_routes.py
+
+# Full pipeline
+retrosynth_pipeline: preprocess_retrosynth run_retrosynth validate_routes
+
 # Run the full pipeline
 run: all
 	echo "Pipeline Completed Successfully!"

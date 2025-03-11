@@ -4,3 +4,6 @@ rdkit
 networkx
 pandas
 numpy
+rdkit
+askcos  # If using ASKCOS (requires setup; see https://askcos.mit.edu/)
+pandas
