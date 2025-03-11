@@ -2,6 +2,30 @@ from rdkit import Chem
 import torch
 from torch_geometric.data import Data
 
+def graph_to_molecule(graph):
+    # Create an editable molecule
+    mol = Chem.RWMol()
+    
+    # Add atoms based on node features (first column of x is atomic number)
+    for atomic_num in graph.x[:, 0].cpu().numpy():
+        atom = Chem.Atom(int(atomic_num))
+        mol.AddAtom(atom)
+    
+    # Add bonds based on edge_index
+    for edge in graph.edge_index.t().cpu().numpy():
+        i, j = edge
+        # Check if bond already exists to avoid duplicates
+        if mol.GetBondBetweenAtoms(int(i), int(j)) is None:
+            mol.AddBond(int(i), int(j), Chem.BondType.SINGLE)  # Assume single bonds for now
+    
+    # Sanitize the molecule (fixes valency, kekulizes, etc.)
+    try:
+        Chem.SanitizeMol(mol)
+        return mol
+    except ValueError as e:
+        print(f"Sanitization failed: {e}")
+        return None
+    
 def smiles_to_mol(smiles):
     """Convert SMILES to RDKit molecule, return None if invalid."""
     try:

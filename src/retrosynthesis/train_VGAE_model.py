@@ -7,13 +7,18 @@ from torch_geometric.data import DataLoader, InMemoryDataset
 from torch_geometric.data.data import DataEdgeAttr, DataTensorAttr
 from torch_geometric.data.storage import GlobalStorage  # Import the missing type
 from torch_geometric.nn import GCNConv, VGAE
+from torch_geometric.data import Data
+import networkx as nx
+import matplotlib.pyplot as plt
+from rdkit import Chem
+from rdkit.Chem import Draw
 
 # Adjust sys.path to find your utils
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..", "..")
 sys.path.append(project_root)
 
-from utils.molecule_utils import smiles_to_graph
+from utils.molecule_utils import smiles_to_graph, graph_to_molecule
 
 # =============================================================================
 # Dataset: Build a dataset by querying the ChEMBL database for SMILES
@@ -140,30 +145,58 @@ def main():
     print(f"Model saved to {model_path}")
     
     # Example: Sample from the latent space and decode to obtain a reconstructed graph.
-    # Example: Sample from the latent space and decode to obtain a reconstructed graph.
+    # model.eval()
+    # with torch.no_grad():
+    #     # Define the number of nodes for the sampled graph
+    #     num_nodes = 10  # Adjust based on your desired graph size (e.g., average nodes in your dataset)
+        
+    #     # Sample a latent vector for `num_nodes` nodes
+    #     z = torch.randn(num_nodes, latent_dim).to(device)  # Shape: [num_nodes, latent_dim]
+        
+    #     # Generate an edge_index for all possible edges (fully connected graph)
+    #     # This creates pairs for every possible edge (undirected graph)
+    #     edge_index = torch.combinations(torch.arange(num_nodes), r=2).t().to(device)
+    #     # Shape: [2, num_nodes * (num_nodes - 1) / 2]
+        
+    #     # Decode to get the reconstructed adjacency probabilities
+    #     adj_recon = model.decoder(z, edge_index, sigmoid=True)
+    #     print("Sampled latent vector, reconstructed adjacency probabilities:")
+    #     print(adj_recon.cpu())  # Shape: [num_edges], probabilities between 0 and 1
+        
+    #     # Optionally, threshold to create a binary adjacency matrix
+    #     threshold = 0.5
+    #     adj_binary = (adj_recon > threshold).float()
+    #     print("Binary adjacency matrix (thresholded):")
+    #     print(adj_binary.cpu())
+    
+
+
+    # In your `main()` function, after sampling:
+    # In your main() function, after training
     model.eval()
     with torch.no_grad():
-        # Define the number of nodes for the sampled graph
-        num_nodes = 10  # Adjust based on your desired graph size (e.g., average nodes in your dataset)
-        
-        # Sample a latent vector for `num_nodes` nodes
-        z = torch.randn(num_nodes, latent_dim).to(device)  # Shape: [num_nodes, latent_dim]
-        
-        # Generate an edge_index for all possible edges (fully connected graph)
-        # This creates pairs for every possible edge (undirected graph)
+        num_nodes = 10  # Adjust based on typical molecule size
+        z = torch.randn(num_nodes, latent_dim).to(device)
         edge_index = torch.combinations(torch.arange(num_nodes), r=2).t().to(device)
-        # Shape: [2, num_nodes * (num_nodes - 1) / 2]
-        
-        # Decode to get the reconstructed adjacency probabilities
         adj_recon = model.decoder(z, edge_index, sigmoid=True)
-        print("Sampled latent vector, reconstructed adjacency probabilities:")
-        print(adj_recon.cpu())  # Shape: [num_edges], probabilities between 0 and 1
+        edge_mask = adj_recon > 0.5
+        sampled_edge_index = edge_index[:, edge_mask]
         
-        # Optionally, threshold to create a binary adjacency matrix
-        threshold = 0.5
-        adj_binary = (adj_recon > threshold).float()
-        print("Binary adjacency matrix (thresholded):")
-        print(adj_binary.cpu())
-
+        # Assign node features (e.g., atomic numbers)
+        # For simplicity, assume all nodes are carbon (atomic number 6) with degree as second feature
+        # Replace with a more sophisticated method later
+        x = torch.tensor([[6, 2] for _ in range(num_nodes)], dtype=torch.float)  # [num_nodes, 2]
+        
+        # Create a Data object
+        sampled_graph = Data(x=x, edge_index=sampled_edge_index)
+        
+        # Convert the sampled graph to a molecule
+        mol = graph_to_molecule(sampled_graph)
+        if mol:
+            print("Generated molecule SMILES:", Chem.MolToSmiles(mol))
+        else:
+            print("Failed to create a valid molecule.")
+        
 if __name__ == "__main__":
     main()
+
