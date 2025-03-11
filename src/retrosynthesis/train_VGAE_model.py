@@ -112,37 +112,37 @@ def train_vgae(model, loader, optimizer, device):
 # =============================================================================
 # Main Function: Prepare dataset, train model, and sample from the latent space.
 # =============================================================================
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# def main():
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Path to your ChEMBL database file.
-    db_path = os.path.join("data/chembl_35.db")  # Adjust if needed.
+#     # Path to your ChEMBL database file.
+#     db_path = os.path.join("data/chembl_35.db")  # Adjust if needed.
     
-    # Build the dataset from the database.
-    dataset = MoleculeDBDataset(db_path, limit=1000)  # Increase limit as needed.
-    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+#     # Build the dataset from the database.
+#     dataset = MoleculeDBDataset(db_path, limit=1000)  # Increase limit as needed.
+#     loader = DataLoader(dataset, batch_size=32, shuffle=True)
     
-    # Assume each molecule node has two features: for example, atomic number and degree.
-    # (Ensure that your `smiles_to_graph` function creates node features accordingly.)
-    in_channels = 2
-    hidden_channels = 64
-    latent_dim = 32
+#     # Assume each molecule node has two features: for example, atomic number and degree.
+#     # (Ensure that your `smiles_to_graph` function creates node features accordingly.)
+#     in_channels = 2
+#     hidden_channels = 64
+#     latent_dim = 32
     
-    encoder = GCNEncoder(in_channels, hidden_channels, latent_dim)
-    model = VGAE(encoder).to(device)
+#     encoder = GCNEncoder(in_channels, hidden_channels, latent_dim)
+#     model = VGAE(encoder).to(device)
     
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    num_epochs = 50
-    for epoch in range(num_epochs):
-        loss = train_vgae(model, loader, optimizer, device)
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss:.4f}")
+#     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+#     num_epochs = 50
+#     for epoch in range(num_epochs):
+#         loss = train_vgae(model, loader, optimizer, device)
+#         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss:.4f}")
     
-    # Save the trained VGAE model.
-    model_dir = "models"
-    os.makedirs(model_dir, exist_ok=True)
-    model_path = os.path.join(model_dir, "vgae_molecule.pth")
-    torch.save(model.state_dict(), model_path)
-    print(f"Model saved to {model_path}")
+#     # Save the trained VGAE model.
+#     model_dir = "models"
+#     os.makedirs(model_dir, exist_ok=True)
+#     model_path = os.path.join(model_dir, "vgae_molecule.pth")
+#     torch.save(model.state_dict(), model_path)
+#     print(f"Model saved to {model_path}")
     
     # Example: Sample from the latent space and decode to obtain a reconstructed graph.
     # model.eval()
@@ -172,31 +172,76 @@ def main():
 
 
     # In your `main()` function, after sampling:
-    # In your main() function, after training
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    db_path = os.path.join("data/chembl_35.db")
+    dataset = MoleculeDBDataset(db_path, limit=1000)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+    
+    in_channels = 2
+    hidden_channels = 64
+    latent_dim = 32
+    
+    encoder = GCNEncoder(in_channels, hidden_channels, latent_dim)
+    model = VGAE(encoder).to(device)
+    
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    num_epochs = 50
+    for epoch in range(num_epochs):
+        loss = train_vgae(model, loader, optimizer, device)
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss:.4f}")
+    
+    model_dir = "models"
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, "vgae_molecule.pth")
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
+    
+    # Sample from learned latent space
     model.eval()
     with torch.no_grad():
-        num_nodes = 10  # Adjust based on typical molecule size
-        z = torch.randn(num_nodes, latent_dim).to(device)
+        z_list = []
+        x_list = []
+        for data in dataset:
+            data = data.to(device)
+            mu, logvar = model.encoder(data.x, data.edge_index)
+            z = model.reparametrize(mu, logvar)
+            z_list.append(z)
+            x_list.append(data.x)
+        z_all = torch.cat(z_list, dim=0)
+        x_all = torch.cat(x_list, dim=0)
+        
+        z_mean = torch.mean(z_all, dim=0)
+        z_std = torch.std(z_all, dim=0)
+        
+        num_nodes = 6
+        z = z_mean + torch.randn(num_nodes, latent_dim).to(device) * z_std * 0.1
+        
         edge_index = torch.combinations(torch.arange(num_nodes), r=2).t().to(device)
         adj_recon = model.decoder(z, edge_index, sigmoid=True)
-        edge_mask = adj_recon > 0.5
+        edge_mask = adj_recon > 0.7
         sampled_edge_index = edge_index[:, edge_mask]
         
-        # Assign node features (e.g., atomic numbers)
-        # For simplicity, assume all nodes are carbon (atomic number 6) with degree as second feature
-        # Replace with a more sophisticated method later
-        x = torch.tensor([[6, 2] for _ in range(num_nodes)], dtype=torch.float)  # [num_nodes, 2]
+        # Infer node features from training data distribution
+        unique, counts = torch.unique(x_all[:, 0], return_counts=True)
+        probs = counts.float() / counts.sum()
+        sampled_atomic_nums = torch.multinomial(probs, num_nodes, replacement=True)
+        x = torch.zeros(num_nodes, 2)
+        x[:, 0] = unique[sampled_atomic_nums]
+        x[:, 1] = 2  # Placeholder
         
-        # Create a Data object
         sampled_graph = Data(x=x, edge_index=sampled_edge_index)
+        print("Sampled graph x:", sampled_graph.x)
+        print("Sampled graph edge_index:", sampled_graph.edge_index)
         
-        # Convert the sampled graph to a molecule
         mol = graph_to_molecule(sampled_graph)
         if mol:
             print("Generated molecule SMILES:", Chem.MolToSmiles(mol))
+            img = Draw.MolToImage(mol)
+            img.save("generated_molecule.png")
+            img.show()
         else:
             print("Failed to create a valid molecule.")
-        
+
 if __name__ == "__main__":
     main()
-

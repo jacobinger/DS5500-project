@@ -3,22 +3,22 @@ import torch
 from torch_geometric.data import Data
 
 def graph_to_molecule(graph):
-    # Create an editable molecule
     mol = Chem.RWMol()
-    
-    # Add atoms based on node features (first column of x is atomic number)
     for atomic_num in graph.x[:, 0].cpu().numpy():
         atom = Chem.Atom(int(atomic_num))
         mol.AddAtom(atom)
     
-    # Add bonds based on edge_index
+    max_valence = {6: 4, 7: 3, 8: 2}
+    atom_valence = [0] * graph.num_nodes
     for edge in graph.edge_index.t().cpu().numpy():
         i, j = edge
-        # Check if bond already exists to avoid duplicates
-        if mol.GetBondBetweenAtoms(int(i), int(j)) is None:
-            mol.AddBond(int(i), int(j), Chem.BondType.SINGLE)  # Assume single bonds for now
+        atom_i, atom_j = int(graph.x[i, 0]), int(graph.x[j, 0])
+        if atom_valence[i] < max_valence[atom_i] and atom_valence[j] < max_valence[atom_j]:
+            if mol.GetBondBetweenAtoms(int(i), int(j)) is None:
+                mol.AddBond(int(i), int(j), Chem.BondType.SINGLE)
+                atom_valence[i] += 1
+                atom_valence[j] += 1
     
-    # Sanitize the molecule (fixes valency, kekulizes, etc.)
     try:
         Chem.SanitizeMol(mol)
         return mol
