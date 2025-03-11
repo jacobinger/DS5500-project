@@ -18,6 +18,8 @@ The pipeline automates downloading, preprocessing, training, and inference using
 6. **Validate Routes**: `make validate_routes` → `results/retrosynth_results/ranked_routes.csv`.
 
 ---
+## Retrosynthetic Analysis with GCN
+Uses ChEMBL35 for targets, ZINC20 for precursors, and a GCN to score routes.
 
 ### Notes
 - **Retrosynthesis Tool**:
