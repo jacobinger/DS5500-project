@@ -1,36 +1,36 @@
 DS5500-project/
 ├── src/
 │   ├── chembl35/
-│   │   ├── train_SAGEConv_model.py         # Existing, unused here
-│   │   ├── preprocess_PD_data.py           # Updated: Extract targets
+│   │   ├── preprocess_PD_data.py           # Extract targets
 │   │   ├── download_chembl_db.py           # Existing
 │   ├── zinc20/
 │   │   ├── download_zinc_data.py           # Existing
 │   │   ├── convert_zinc_data.py            # Existing
-│   │   ├── process_zinc_data.py            # Updated: Output SMILES list
-│   │   ├── predict_zinc_data.py            # Existing, unused here
-│   │   ├── zinc20_process_predictions.py   # Existing, unused here
+│   │   ├── process_zinc_data.py            # Output SMILES
 │   ├── retrosynthesis/
-│   │   ├── retrosynth_analyze.py           # Generate synthetic routes
-│   │   ├── preprocess_for_retrosynth.py    # Prepare target molecules
-│   │   ├── validate_synth_routes.py        # Rank and filter routes
+│   │   ├── retrosynth_analyze.py           # Generate routes
+│   │   ├── preprocess_for_retrosynth.py    # Prepare targets
+│   │   ├── train_gcn_model.py              # New: Train GCN
+│   │   ├── gcn_retrosynth_predict.py       # New: Score routes with GCN
+│   │   ├── validate_synth_routes.py        # Updated: Rank with GCN scores
 │   ├── utils/
-│   │   ├── molecule_utils.py               # Helper functions
+│   │   ├── molecule_utils.py               # Updated: Graph conversion
 ├── data/
-│   ├── curl_commands/
-│   │   ├── ZINC-downloader-3D-smi.txt      # Existing
 │   ├── chembl35/
-│   │   ├── chembl35.db                     # From download_chembl_db.py
-│   │   ├── pd_targets.csv                  # Parkinson’s targets from preprocess_PD_data.py
+│   │   ├── chembl35.db                     # ChEMBL35 database
+│   │   ├── pd_targets.csv                  # Parkinson’s targets
 │   ├── zinc20/
 │   │   ├── zinc20_processed.csv            # Processed ZINC20 SMILES
 │   ├── retrosynth/
-│   │   ├── target_molecules.csv            # Cleaned targets for retrosynthesis
-│   │   ├── synthetic_routes/               # Generated routes
-│   │   │   ├── routes.csv                  # Raw routes output
+│   │   ├── target_molecules.csv            # Targets for retrosynthesis
+│   │   ├── synthetic_routes/
+│   │   │   ├── routes.csv                  # Raw routes
+│   │   ├── gcn_training_data.csv           # Training data for GCN
+├── models/
+│   ├── gcn_model.pth                       # Trained GCN model
 ├── results/
 │   ├── retrosynth_results/
-│   │   ├── ranked_routes.csv               # Final ranked routes
+│   │   ├── ranked_routes.csv               # GCN-ranked routes
 ├── Makefile                                # Updated
 ├── README.md                               # Updated
 ├── requirements.txt                        # Updated

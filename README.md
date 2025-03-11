@@ -9,7 +9,18 @@ This project focuses on:
 
 The pipeline automates downloading, preprocessing, training, and inference using **PyTorch Geometric**.
 
+### Workflow
+1. **Download Data**: Already done (`chembl35.db` and ZINC20 raw files).
+2. **Preprocess ChEMBL35**: `make preprocess_pd` → `data/chembl35/pd_targets.csv`.
+3. **Process ZINC20**: `make process_zinc` → `data/zinc20/zinc20_processed.csv`.
+4. **Prepare Targets**: `make preprocess_retrosynth` → `data/retrosynth/target_molecules.csv`.
+5. **Run Retrosynthesis**: `make run_retrosynth` → `data/retrosynth/synthetic_routes/routes.csv`.
+6. **Validate Routes**: `make validate_routes` → `results/retrosynth_results/ranked_routes.csv`.
+
 ---
+
+### Notes
+- **Retrosynthesis Tool**:
 
 ## ** Getting Started**
 
@@ -33,28 +44,6 @@ pip install -r requirements.txt
 ---
 
 ## ** Project Structure**
-```
-📂 DS5500-project/
-├── 📂 src/                   # Source code
-│   ├── 📂 preprocessing/      # Data processing scripts
-│   │   ├── preprocess_data.py
-│   │   ├── preprocess_PD_data.py
-│   │   ├── process_zinc_data.py
-│   ├── 📂 models/             # Model training & inference
-│   │   ├── train_SAGEConv_model.py
-│   │   ├── predict_zinc_data.py
-│   ├── 📂 data_download/       # Scripts for downloading datasets
-│   │   ├── download_zinc_data.py
-│   │   ├── covert_zinc_data.py
-│   ├── 📂 utils/               # Helper functions
-│   │   ├── zinc20_process_predictions.py
-├── 📂 data/                   # Raw & processed data
-├── 📂 models/                 # Trained models
-├── 📂 results/                # Final rankings & reports
-├── 📜 README.md               # Project documentation
-├── 📜 makefile                # Automates workflow
-├── 📜 requirements.txt        # List of dependencies
-```
 
 ---
 
