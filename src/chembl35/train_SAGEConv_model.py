@@ -167,7 +167,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using {device} for training")
 
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_4.pt")
     if os.path.exists(output_path):
         graph = torch.load(output_path, weights_only=False)
         logger.info(f"Loaded preprocessed graph from {output_path}")

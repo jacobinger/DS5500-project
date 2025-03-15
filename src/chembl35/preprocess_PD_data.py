@@ -48,7 +48,7 @@ def get_target_embedding(sequence):
     # Average over the sequence length dimension to obtain a fixed-size embedding.
     return outputs.last_hidden_state.mean(dim=1).squeeze().numpy()
 
-def process_chembl_35(db_path, output_path, max_pairs=200000):
+def process_chembl_35(db_path, output_path, max_pairs=2000000000):
     """Process ChEMBL 35 database into a heterogeneous graph, filtered for PD targets."""
     # Connect to the ChEMBL database
     conn = sqlite3.connect(db_path)
@@ -87,11 +87,15 @@ def process_chembl_35(db_path, output_path, max_pairs=200000):
         AND act.standard_units = 'nM'
         AND cs.canonical_smiles IS NOT NULL
         AND csq.sequence IS NOT NULL
-        AND td.chembl_id IN ('CHEMBL1795186', 'CHEMBL6151', 'CHEMBL2176839', 'CHEMBL5408', 'CHEMBL6122')
-    ORDER BY act.activity_id
-    LIMIT ?
+        AND td.chembl_id IN (
+            'CHEMBL1795186', 'CHEMBL6151', 'CHEMBL2176839', 'CHEMBL5408', 'CHEMBL6122', -- Original
+            'CHEMBL2056', 'CHEMBL1075104', 'CHEMBL2782', 'CHEMBL1663', 'CHEMBL1937'     -- Added PD targets
+        )
+        AND td.organism = 'Homo sapiens'
+        AND a.confidence_score >= 8
+    ORDER BY act.activity_id;
     """
-    df = pd.read_sql_query(query, conn, params=(max_pairs,))
+    df = pd.read_sql_query(query, conn)  # No params since no LIMIT
     conn.close()
 
     logger.info(f"Extracted {len(df)} PD-specific ligand-target pairs")
@@ -154,7 +158,7 @@ def process_chembl_35(db_path, output_path, max_pairs=200000):
 def main():
     """Main function to process ChEMBL 35 data and generate a heterogeneous graph."""
     db_path = os.path.join(DATA_DIR, "chembl_35.db")
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_3.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_4.pt")
     
     if os.path.exists(output_path):
         logger.info(f"Graph already exists at {output_path}. Skipping processing.")
