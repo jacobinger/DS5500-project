@@ -42,6 +42,13 @@ def get_ligand_features(smiles):
 
 def get_target_embedding(sequence):
     """Generate ESM-2 embeddings for target protein sequences."""
+    # GPU Acceleration: Move esm_model to GPU if available:
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # esm_model.to(device)
+    # inputs = tokenizer(sequence, return_tensors="pt", truncation=True, max_length=1024).to(device)
+    # with torch.no_grad():
+    #     outputs = esm_model(**inputs)
+    # return outputs.last_hidden_state.mean(dim=1).squeeze().cpu().numpy()
     inputs = tokenizer(sequence, return_tensors="pt", truncation=True, max_length=1024)
     with torch.no_grad():
         outputs = esm_model(**inputs)
@@ -89,7 +96,12 @@ def process_chembl_35(db_path, output_path, max_pairs=2000000000):
         AND csq.sequence IS NOT NULL
         AND td.chembl_id IN (
             'CHEMBL1795186', 'CHEMBL6151', 'CHEMBL2176839', 'CHEMBL5408', 'CHEMBL6122', -- Original
-            'CHEMBL2056', 'CHEMBL1075104', 'CHEMBL2782', 'CHEMBL1663', 'CHEMBL1937'     -- Added PD targets
+            'CHEMBL2056', 'CHEMBL1075104', 'CHEMBL2782', 'CHEMBL1663', 'CHEMBL1937',
+            'CHEMBL217', 'CHEMBL234', 'CHEMBL251', 'CHEMBL224', 'CHEMBL216', 'CHEMBL3227',  -- GPCRs
+            'CHEMBL1075104', 'CHEMBL3337330', 'CHEMBL1862', 'CHEMBL2828',                    -- Kinases
+            'CHEMBL2039', 'CHEMBL2023', 'CHEMBL1843', 'CHEMBL2179', 'CHEMBL6159',            -- Enzymes
+            'CHEMBL5169188', 'CHEMBL220', 'CHEMBL238', 'CHEMBL4138', 'CHEMBL5183',           -- Transporters & Ion Channels
+            'CHEMBL6152'    -- Added PD targets
         )
         AND td.organism = 'Homo sapiens'
         AND a.confidence_score >= 8
@@ -158,7 +170,7 @@ def process_chembl_35(db_path, output_path, max_pairs=2000000000):
 def main():
     """Main function to process ChEMBL 35 data and generate a heterogeneous graph."""
     db_path = os.path.join(DATA_DIR, "chembl_35.db")
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_4.pt")
+    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_5.pt")
     
     if os.path.exists(output_path):
         logger.info(f"Graph already exists at {output_path}. Skipping processing.")
