@@ -66,6 +66,19 @@ def generate_n_molecules(n=10, num_nodes=6):
       List of RDKit Mol objects. If a molecule cannot be generated,
       the corresponding list element will be None.
     """
+    max_valence = {
+        1: 1,   # Hydrogen
+        6: 4,   # Carbon
+        7: 3,   # Nitrogen
+        8: 2,   # Oxygen
+        9: 1,   # Fluorine
+        15: 5,  # Phosphorus
+        16: 2,  # Sulfur
+        17: 1,  # Chlorine
+        35: 1,  # Bromine
+        53: 1,  # Iodine
+        # Add more as needed
+    }
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Load the dataset to compute latent space statistics.
@@ -85,10 +98,10 @@ def generate_n_molecules(n=10, num_nodes=6):
     model_path = os.path.join(model_dir, "vgae_molecule.pth")
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-    
-    # Compute latent space statistics from the dataset.
+    # Collect latent vectors and node features
     z_list = []
     x_list = []
+
     with torch.no_grad():
         for data in dataset:
             data = data.to(device)
@@ -96,16 +109,26 @@ def generate_n_molecules(n=10, num_nodes=6):
             z = model.reparametrize(mu, logvar)
             z_list.append(z)
             x_list.append(data.x)
+
     z_all = torch.cat(z_list, dim=0)
     x_all = torch.cat(x_list, dim=0)
-    
+
+    # Compute latent stats
     z_mean = torch.mean(z_all, dim=0)
     z_std = torch.std(z_all, dim=0)
+
+    # Extract allowed atoms and frequencies
+    unique, counts = torch.unique(x_all[:, 0], return_counts=True)
+    allowed_atoms = torch.tensor(list(max_valence.keys()), dtype=unique.dtype)
+    mask = torch.isin(unique, allowed_atoms)
+    unique = unique[mask]
+    counts = counts[mask]
+    probs = counts.float() / counts.sum()
     
     generated_molecules = []
     for _ in range(n):
         # Sample a new latent vector with adjustable number of nodes.
-        z = z_mean + torch.randn(num_nodes, latent_dim).to(device) * z_std * 0.2
+        z = z_mean + torch.randn(num_nodes, latent_dim).to(device) * z_std * 0.5
         
         # Create a complete graph edge_index for the sampled nodes.
         edge_index = torch.combinations(torch.arange(num_nodes), r=2).t().to(device)
@@ -114,7 +137,10 @@ def generate_n_molecules(n=10, num_nodes=6):
         sampled_edge_index = edge_index[:, edge_mask]
         
         # Infer node features from the training distribution.
-        unique, counts = torch.unique(x_all[:, 0], return_counts=True)
+        allowed_atoms = torch.tensor(list(max_valence.keys()), dtype=unique.dtype)
+        mask = torch.isin(unique, allowed_atoms)
+        unique = unique[mask]
+        counts = counts[mask]
         probs = counts.float() / counts.sum()
         sampled_atomic_nums = torch.multinomial(probs, num_nodes, replacement=True)
         x = torch.zeros(num_nodes, 2)

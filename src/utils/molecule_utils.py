@@ -13,7 +13,19 @@ def graph_to_molecule(graph):
         atom = Chem.Atom(int(atomic_num))
         mol.AddAtom(atom)
     
-    max_valence = {6: 4, 7: 3, 8: 2}
+    max_valence = {
+    1: 1,   # H
+    6: 4,   # C
+    7: 3,   # N
+    8: 2,   # O
+    9: 1,   # F
+    15: 5,  # P
+    16: 2,  # S
+    17: 1,  # Cl
+    35: 1,  # Br  ← this was missing!
+    53: 1,  # I   ← add if needed
+    # Add more as needed
+}
     atom_valence = [0] * graph.num_nodes
     for edge in graph.edge_index.t().cpu().numpy():
         i, j = edge
