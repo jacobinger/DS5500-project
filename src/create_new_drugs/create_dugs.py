@@ -109,6 +109,20 @@ def evaluate_generated_molecule(mol, gnn_model, device, target_features, thresho
         score = torch.sigmoid(score_tensor).item() if use_sigmoid else score_tensor.item()
     return score, score > threshold
 
+def get_top_scoring_molecules(generated_molecules, gnn_model, target_features, device, top_k=5):
+    results = []
+    for mol in generated_molecules:
+        if mol is None:
+            continue
+        try:
+            score, _ = evaluate_generated_molecule(mol, gnn_model, device, target_features)
+            results.append((mol, score))
+        except Exception as e:
+            print(f"Scoring failed: {e}")
+    
+    results.sort(key=lambda tup: tup[1], reverse=True)  # Sort by score descending
+    return results[:top_k]
+
 
 # === Main ===
 def main():
@@ -116,72 +130,57 @@ def main():
     print(f"Using device: {device}")
 
     node_counts = [5, 6, 7, 8, 9]
-    molecules_per_count = 3
-    all_generated_molecules = {}
+    molecules_per_count = 200  # Generate more for greedy filtering
+    top_k = 5  # Keep top 5 candidates
     results = []
 
-    for num_nodes in node_counts:
-        print(f"\nGenerating molecules with {num_nodes} nodes:")
-        generated_molecules = generate_n_molecules(n=molecules_per_count, num_nodes=num_nodes)
-        all_generated_molecules[num_nodes] = generated_molecules
-
-    # Load VGAE model
-    vgae_encoder = GCNEncoder(in_channels=2, hidden_channels=64, latent_dim=32)
-    vgae_model = VGAE(vgae_encoder).to(device)
-    vgae_model.load_state_dict(torch.load("models/vgae_molecule.pth", map_location=device))
-    vgae_model.eval()
-
-    # Load HeteroGNN model
+    # Load GNN model
     gnn_model = HeteroGNN(
         ligand_in_channels=1280,
         target_in_channels=1280,
         hidden_channels=256,
         dropout_p=0.2
     ).to(device)
-
     gnn_model.load_state_dict(torch.load("data/sageconv_model.pt", map_location=device))
-
     gnn_model.eval()
 
-    # Generate random target feature vector (replace with actual if available)
-    with open(os.path.join("data", "target_dict.pkl"), "rb") as f:
-        target_dict = pickle.load(f)
+    # Load VGAE encoder
+    vgae_encoder = GCNEncoder(in_channels=2, hidden_channels=64, latent_dim=32)
+    vgae_model = VGAE(vgae_encoder).to(device)
+    vgae_model.load_state_dict(torch.load("models/vgae_molecule.pth", map_location=device))
+    vgae_model.eval()
 
-    target_id = list(target_dict.keys())[0]
-    target_tensor = target_dict[target_id][1]  # numpy array
-    target_features = torch.tensor(target_tensor).unsqueeze(0).to(device)
+    # Simulated target embedding
+    target_features = torch.rand(1, 1280, device=device)
 
-    for num_nodes, molecules in all_generated_molecules.items():
-        print(f"\nEvaluating molecules with {num_nodes} nodes:")
-        for i, mol in enumerate(molecules):
-            print(f"\nMolecule {i+1} (nodes: {num_nodes}):")
+    for num_nodes in node_counts:
+        print(f"\nGenerating {molecules_per_count} molecules with {num_nodes} nodes:")
+        generated_molecules = generate_n_molecules(n=molecules_per_count, num_nodes=num_nodes)
+        
+        # Get top-k molecules based on predicted GNN score
+        top_candidates = get_top_scoring_molecules(
+            generated_molecules, gnn_model, target_features, device, top_k=top_k
+        )
+
+        for i, (mol, score) in enumerate(top_candidates):
             if mol:
                 smiles = Chem.MolToSmiles(mol)
-                print("SMILES:", smiles)
-                score, viable = evaluate_generated_molecule(mol, gnn_model, device, target_features)
-                print(f"Predicted binding affinity score: {score:.4f}")
-                print(f"=> Molecule is predicted to be a {'good binder' if viable else 'poor binder'}.")
-
+                print(f"Top {i+1} SMILES (nodes={num_nodes}): {smiles}, score: {score:.4f}")
                 img = Draw.MolToImage(mol)
-                image_path = os.path.join(output_dir, f"generated_molecule_{num_nodes}_nodes_{i}.png")
+                image_path = os.path.join("png", "novel", f"top_candidate_{num_nodes}_nodes_{i}.png")
                 img.save(image_path)
                 print(f"Saved image to {image_path}")
-
                 results.append({
                     "SMILES": smiles,
-                    "Score": score
-                })
-            else:
-                print("Failed to generate a valid molecule.")
-                results.append({
-                    "SMILES": None,
-                    "Score": None
+                    "Score": score,
+                    "Node_Count": num_nodes,
+                    "Image_Path": image_path
                 })
 
     results_df = pd.DataFrame(results)
-    csv_path = os.path.join("data", "generated_molecule_predictions.csv")
-    results_df.to_csv(csv_path, index=False)
-    print(f"\nSaved predictions to {csv_path}")
+    results_df.to_csv("data/top_scoring_molecules.csv", index=False)
+    print("\nSaved top molecule predictions to data/top_scoring_molecules.csv")
+
 
 if __name__ == "__main__":
     main()
