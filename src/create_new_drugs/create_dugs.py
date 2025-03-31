@@ -9,11 +9,12 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from torch_geometric.nn import HeteroConv, SAGEConv
 from torch_geometric.data import HeteroData
+from rdkit.Chem import AllChem
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..")
 sys.path.append(project_root)
-from VGAE_model.VGAE_retrosynth_predict import generate_n_molecules
+from create_new_drugs.VGAE_affinity_utils import generate_n_molecules
 
 output_dir = "png/novel"
 os.makedirs(output_dir, exist_ok=True)
@@ -66,15 +67,15 @@ class HeteroGNN(nn.Module):
         out = self.edge_predictor(edge_feats).squeeze(-1)
         return out
 
-def molecule_to_ligand_features(mol):
+def molecule_to_ligand_features(mol, radius=2, n_bits=1024):
     """
-    Convert an RDKit molecule to a feature tensor of shape [1, 1024].
-    Replace this dummy implementation with your actual feature extraction.
+    Convert an RDKit Mol object into Morgan fingerprint features.
+    Returns a [1, n_bits] torch.FloatTensor.
     """
-    import numpy as np
-
-    features = np.random.rand(1024).astype(np.float32)
-    return torch.tensor(features).unsqueeze(0)
+    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
+    arr = np.zeros((n_bits,), dtype=np.float32)
+    AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
+    return torch.tensor(arr).unsqueeze(0)
 
 def prepare_evaluation_data(mol, target_features):
     """
@@ -96,36 +97,39 @@ def prepare_evaluation_data(mol, target_features):
     data['ligand', 'binds_to', 'target'].edge_index = torch.tensor([[0],[0]], dtype=torch.long)
     return data
 
-def evaluate_generated_molecule(mol, gnn_model, device, target_features, threshold=0.5):
+def evaluate_generated_molecule(mol, gnn_model, device, target_features, threshold=0.5, use_sigmoid=True):
     """
-    Evaluate a generated molecule using the hetero GNN model.
-    
+    Evaluate a generated molecule using the hetero GNN model on the same scale as ZINC20 predictions.
+
     Parameters:
-      mol: an RDKit Mol object.
-      gnn_model: a trained hetero GNN model.
+      mol: RDKit Mol object.
+      gnn_model: Trained hetero GNN model.
       device: torch.device.
-      target_features: a tensor of shape [1, 1280] representing the target.
-      threshold: threshold for deciding viability.
-    
+      target_features: torch.Tensor of shape [1, 1280].
+      threshold: Threshold to decide viability.
+      use_sigmoid: Whether to apply sigmoid scaling to match predictions.
+
     Returns:
-      score: the predicted binding affinity (a float).
-      is_viable: Boolean indicating whether the molecule meets the threshold.
+      score: Predicted binding affinity (float).
+      is_viable: Boolean.
     """
     gnn_model.eval()
     data = prepare_evaluation_data(mol, target_features)
     data = data.to(device)
+
     with torch.no_grad():
         output = gnn_model(data)
+        score_tensor = output if isinstance(output, torch.Tensor) else output['score']
+        if use_sigmoid:
+            score = torch.sigmoid(score_tensor).item()
+        else:
+            score = score_tensor.item()
 
-    score = output.item()
     is_viable = score > threshold
     return score, is_viable
 
+
 def main():
-    import os
-    from rdkit import Chem
-    from rdkit.Chem import Draw
-    
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     

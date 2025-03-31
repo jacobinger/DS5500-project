@@ -8,10 +8,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..")
 sys.path.append(project_root)
 
-from SAGEConv_model.train_SAGEConv_model import HeteroGNN  # Load the trained model from your existing code
+from train_SAGEConv_model.train_SAGEConv_model import HeteroGNN  # Load the trained model from your existing code
 
 # Load Trained Model
-model_path = "data/sag.pt"
+model_path = "data/sageconv_model.pt"
 if not os.path.exists(model_path):
     raise FileNotFoundError(f"Trained model not found at {model_path}")
 
