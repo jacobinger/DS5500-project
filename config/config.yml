@@ -1,0 +1,15 @@
+# config/config.yaml
+data_dir: "data"
+zinc:
+  max_compounds: 10000
+  fingerprint_size: 1024
+models:
+  sage:
+    hidden_channels: 256
+    dropout: 0.2
+    learning_rate: 0.001
+    num_epochs: 200
+  vgae:
+    latent_dim: 32
+logging:
+  level: "INFO"

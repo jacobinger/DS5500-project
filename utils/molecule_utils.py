@@ -1,6 +1,11 @@
 from rdkit import Chem
 import torch
 from torch_geometric.data import Data
+import yaml
+import os
+from typing import Dict
+import logging
+import os
 
 def graph_to_molecule(graph):
     mol = Chem.RWMol()
@@ -65,3 +70,25 @@ def smiles_to_graph(smiles):
     x = torch.tensor(atom_features, dtype=torch.float)
     edge_index = torch.tensor(edge_index, dtype=torch.long).t().contiguous()
     return Data(x=x, edge_index=edge_index)
+
+
+def load_config(config_path: str = os.path.join("config", "config.yaml")) -> Dict:
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+    return config
+
+
+
+def setup_logger(name: str) -> logging.Logger:
+    config = load_config()
+    log_level = config.get("logging", {}).get("level", "INFO")
+    logger = logging.getLogger(name)
+    logger.setLevel(getattr(logging, log_level.upper()))
+    
+    if not logger.handlers:
+        ch = logging.StreamHandler()
+        ch.setLevel(getattr(logging, log_level.upper()))
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+    return logger

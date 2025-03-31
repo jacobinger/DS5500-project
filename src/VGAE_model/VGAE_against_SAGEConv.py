@@ -13,7 +13,7 @@ from torch_geometric.data import HeteroData
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..")
 sys.path.append(project_root)
-from retrosynthesis.VGAE_retrosynth_predict import generate_n_molecules
+from VGAE_model.VGAE_retrosynth_predict import generate_n_molecules
 
 output_dir = "png/novel"
 os.makedirs(output_dir, exist_ok=True)
@@ -141,7 +141,7 @@ def main():
         all_generated_molecules[num_nodes] = generated_molecules
     
     # Load the pre-trained GNN model for evaluation.
-    model_path = os.path.join("data", "gnn_model.pt")
+    model_path = os.path.join("data", "sageconv_model.pt")
     gnn_model = HeteroGNN(ligand_in_channels=1024, target_in_channels=1280,
                            hidden_channels=256, dropout_p=0.2).to(device)
     gnn_model.load_state_dict(torch.load(model_path, map_location=device))

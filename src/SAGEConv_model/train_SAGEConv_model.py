@@ -167,37 +167,43 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using {device} for training")
 
-    output_path = os.path.join(DATA_DIR, "chembl_35_hetero_graph_PD_4.pt")
+    output_path = os.path.join(DATA_DIR, "train_2_graph.pt")
+    
     if os.path.exists(output_path):
         graph = torch.load(output_path, weights_only=False)
         logger.info(f"Loaded preprocessed graph from {output_path}")
         logger.info(f"Graph: {graph}")
+        
         edge_attrs = graph["ligand", "binds_to", "target"].edge_attr
+        if torch.isnan(edge_attrs).any():
+            logger.warning("Found NaN values in edge attributes. Filtering out edges with NaN values.")
+            valid_mask = ~torch.isnan(edge_attrs.squeeze(-1))
+            graph["ligand", "binds_to", "target"].edge_index = graph["ligand", "binds_to", "target"].edge_index[:, valid_mask]
+            graph["ligand", "binds_to", "target"].edge_attr = edge_attrs[valid_mask]
+            edge_attrs = graph["ligand", "binds_to", "target"].edge_attr
+        
         mean, std = edge_attrs.mean(), edge_attrs.std()
-        #Normalize Data: Add normalization to edge_attr (affinities) for training stability
-        graph["ligand", "binds_to", "target"].edge_attr = (edge_attrs - mean) / std
-        print(f"Number of nodes (ligand): {graph['ligand'].x.shape[0]}")
-        print(f"Number of nodes (target): {graph['target'].x.shape[0]}")
-        print(f"Number of edges: {graph['ligand', 'binds_to', 'target'].edge_index.shape[1]}")
-
-
-        num_nodes = graph['ligand'].x.shape[0] + graph['target'].x.shape[0]
-        num_edges = graph['ligand', 'binds_to', 'target'].edge_index.shape[1]
-        density = num_edges / num_nodes
-        print(f"Graph Density: {density:.4f}")
-
+        if std == 0:
+            raise ValueError("Standard deviation of edge attributes is zero, cannot normalize.")
+        
         logger.info(f"Normalized edge attrs: mean={mean}, std={std}")
         logger.info(f"Edge attr stats: min={edge_attrs.min()}, max={edge_attrs.max()}, mean={mean}, std={std}")
+        
+        # Normalize edge attributes for training stability.
+        graph["ligand", "binds_to", "target"].edge_attr = (edge_attrs - mean) / std
     else:
-        raise FileNotFoundError(f"Preprocessed graph not found at {output_path}. Please run preprocessing first.")
+        logger.error(f"Preprocessed graph not found at {output_path}.")
+        logger.error("Please run your preprocessing pipeline to create the preprocessed graph file and try again.")
+        exit(1)  # Exit the program gracefully if file is missing.
 
     graph = graph.to(device)
     model = HeteroGNN(
-        ligand_in_channels=1024,
-        target_in_channels=1280,
+        ligand_in_channels=1024,   # Ensure these dimensions match your data.
+        target_in_channels=1280,     # Ensure these dimensions match your data.
         hidden_channels=HIDDEN_CHANNELS,
         dropout_p=DROPOUT_P
     ).to(device)
+
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
