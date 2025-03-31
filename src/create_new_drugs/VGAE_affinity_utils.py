@@ -159,6 +159,9 @@ def generate_n_molecules(n=10, num_nodes=6):
     return generated_molecules
 
 
+
+
+
 #test function
 # if __name__ == "__main__":
 #     molecules = generate_n_molecules(n=5)
