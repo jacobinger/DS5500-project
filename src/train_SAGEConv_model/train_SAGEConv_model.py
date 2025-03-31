@@ -198,8 +198,8 @@ def main():
 
     graph = graph.to(device)
     model = HeteroGNN(
-        ligand_in_channels=1024,   # Ensure these dimensions match your data.
-        target_in_channels=1280,     # Ensure these dimensions match your data.
+        ligand_in_channels=1280,
+        target_in_channels=1280,
         hidden_channels=HIDDEN_CHANNELS,
         dropout_p=DROPOUT_P
     ).to(device)
@@ -211,8 +211,8 @@ def main():
     test_predictions, test_targets, edge_mean, edge_std = train_model(
         model, graph, criterion, optimizer, scheduler, device, num_epochs=NUM_EPOCHS, seed=42
     )
-    torch.save(model.state_dict(), os.path.join(DATA_DIR, "gnn_model.pt"))
-    logger.info("Saved trained GNN model to data/gnn_model.pt")
+    torch.save(model.state_dict(), os.path.join(DATA_DIR, "sageconv_model.pt"))
+    logger.info("Saved trained GNN model to data/sageconv_model.pt")
     visualize_predictions(test_predictions, test_targets, title="Test Set: True vs. Predicted", mean=edge_mean, std=edge_std)
 
 if __name__ == "__main__":

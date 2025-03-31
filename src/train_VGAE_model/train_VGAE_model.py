@@ -100,8 +100,8 @@ def train_vgae(model, loader, optimizer, device):
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    db_path = os.path.join("data", "chembl_35.db")
-    dataset = MoleculeDBDataset(db_path, limit=1000)
+    db_path = os.path.join("data", "train_1_graphs.db")
+    dataset = MoleculeDBDataset(db_path)
     loader = DataLoader(dataset, batch_size=32, shuffle=True)
     
     in_channels = 2
@@ -112,7 +112,7 @@ def main():
     model = VGAE(encoder).to(device)
     
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-    num_epochs = 50
+    num_epochs = 100
     for epoch in range(num_epochs):
         loss = train_vgae(model, loader, optimizer, device)
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {loss:.4f}")

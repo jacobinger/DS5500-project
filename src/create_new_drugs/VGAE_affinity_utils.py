@@ -13,7 +13,7 @@ from rdkit.Chem import Draw
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.join(current_dir, "..", "..")
 sys.path.append(project_root)
-from utils.molecule_utils import graph_to_molecule
+from src.utils.molecule_utils import graph_to_molecule
 
 class MoleculeDBDataset(InMemoryDataset):
     def __init__(self, db_path, limit=1000, transform=None, pre_transform=None):
@@ -69,7 +69,7 @@ def generate_n_molecules(n=10, num_nodes=6):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Load the dataset to compute latent space statistics.
-    db_path = os.path.join("data", "chembl_35.db")
+    db_path = os.path.join("data", "train_2_graphs.db")
     dataset = MoleculeDBDataset(db_path, limit=1000)
     
     # Define model parameters (should match training)
@@ -105,12 +105,12 @@ def generate_n_molecules(n=10, num_nodes=6):
     generated_molecules = []
     for _ in range(n):
         # Sample a new latent vector with adjustable number of nodes.
-        z = z_mean + torch.randn(num_nodes, latent_dim).to(device) * z_std * 0.1
+        z = z_mean + torch.randn(num_nodes, latent_dim).to(device) * z_std * 0.2
         
         # Create a complete graph edge_index for the sampled nodes.
         edge_index = torch.combinations(torch.arange(num_nodes), r=2).t().to(device)
         adj_recon = model.decoder(z, edge_index, sigmoid=True)
-        edge_mask = adj_recon > 0.7
+        edge_mask = adj_recon > 0.6
         sampled_edge_index = edge_index[:, edge_mask]
         
         # Infer node features from the training distribution.

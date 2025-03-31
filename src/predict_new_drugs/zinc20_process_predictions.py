@@ -17,7 +17,7 @@ ligand_ids = [f"ZINC20_{i}" for i in range(zinc20_graph['ligand'].num_nodes)]
 ranking_df = pd.DataFrame({"Ligand_ID": ligand_ids, "Predicted_Score": scaled_scores})
 ranking_df = ranking_df.sort_values(by="Predicted_Score", ascending=False)
 
-top_n = 50
+top_n = 16
 ranking_df = ranking_df.head(top_n)
 ranking_df.to_csv("data/zinc20_ranked_candidates.csv", index=False)
 
