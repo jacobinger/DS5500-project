@@ -37,10 +37,10 @@ ChEMBL 35 Bioactivity Dataset: We obtained data from ChEMBL version 35, a compre
 ZINC20 Library: To explore a broader chemical space, we utilized the ZINC20 database of purchasable compounds​ ZINC20 contains billions of in silico-generated drug-like molecules (make-on-demand libraries). We downloaded a subset of 10 million random drug-like compounds from ZINC20 (filtered by molecular weight 150–500, drug-likeness criteria, and removal of Pan-Assay Interference (PAINS) scaffolds). These molecules were used in two ways: (1) as additional input for the generative model (optional fine-tuning or to augment training diversity), and (2) as an external library for virtual screening with our trained models. The sheer size of ZINC20 provides an opportunity to discover novel scaffolds that were not present in ChEMBL, thereby expanding the search space for PD drug candidates.
 
 
-#### Data Preprocessing
+#### Data Preprocessing:
+---
 
 Molecules from ChEMBL and ZINC were converted into undirected graphs using RDKit, with atoms as nodes (featuring atom type, degree, charge, aromaticity, etc.) and chemical bonds as edges (with bond type, conjugation, and ring info). We standardized ionization, tautomers, and removed salts. Protein targets (e.g., MAO-B, A<sub>2A</sub>) were sourced from the Protein Data Bank, and binding pockets (within ~6Å of ligands or active sites) were extracted and represented as graphs—residues as nodes (with features like amino acid type and secondary structure), edges based on sequence or spatial proximity. For each ligand–target pair, we built a bipartite graph with cross-edges added between ligand atoms and nearby residues (<5Å) based on docked poses (or known complexes). Interaction edges were labeled (e.g., hydrophobic or H-bond) based on geometry. Docking was performed with AutoDock Vina when no crystal complex was available.
----
 
 ##### **Molecular and Protein Representation**
 
