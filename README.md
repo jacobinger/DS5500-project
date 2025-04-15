@@ -1,6 +1,7 @@
 # Efficient Discovery of Parkinson’s Drug Candidates using Graph Neural Networks ##
 
-Authors: Jake Inger
+### Authors:
+Jacob Inger
 
 ### Abstract
 
@@ -228,7 +229,7 @@ sciencedirect.com
 
 ### Statement of Contributions
 
-Jake Inger: Conceptualized and implemented the pipeline, prepared and curated datasets, trained models, conducted screening and optimization, and authored the manuscript.
+Jacob Inger: Conceptualized and implemented the pipeline, prepared and curated datasets, trained models, conducted screening and optimization, and authored the manuscript.
 
 ### Conclusion
 
