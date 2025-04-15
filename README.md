@@ -1,16 +1,14 @@
-Efficient Discovery of Parkinson’s Drug Candidates using Graph Neural Networks
+## Efficient Discovery of Parkinson’s Drug Candidates using Graph Neural Networks ##
 
-Authors
+Authors: Jake Inger
 
-Jake Inger
-
-Abstract
+### Abstract
 
 Parkinson's Disease (PD) is a debilitating neurodegenerative disorder affecting over 10 million people worldwide. Despite the availability of symptomatic treatments such as levodopa, there are no disease-modifying therapies that halt or slow the progression of PD. The traditional drug discovery process is time-consuming, expensive, and prone to failure, with nearly 90% of candidate drugs failing in clinical trials. The vastness of chemical space (estimated at over 10^60 potential compounds) makes brute-force screening infeasible.
 
 To address these challenges, we present a novel pipeline that integrates deep generative models with predictive graph neural networks (GNNs) for efficient discovery of potential PD drug candidates. Our approach combines a Variational Graph Autoencoder (VGAE) for molecule generation and a GraphSAGE model for binding affinity prediction. Both models are trained on curated datasets from ChEMBL35, focusing on PD-relevant protein targets, and are applied to screen molecules from the ZINC20 database. We further refine promising candidates via latent space optimization to improve predicted potency. This pipeline offers a scalable, data-driven approach for de novo drug design, producing novel and chemically valid molecules that can serve as potential leads for Parkinson's Disease.
 
-Introduction
+### Introduction
 
 Parkinson’s Disease is a chronic, progressive neurodegenerative disorder characterized by the loss of dopaminergic neurons. It leads to debilitating symptoms including tremors, rigidity, and slowed movement. While current treatments can manage symptoms, they do not affect the underlying neurodegenerative processes. Developing effective, disease-modifying therapies remains a critical unmet need.
 
@@ -18,15 +16,15 @@ The complexity of PD pathology, coupled with the immense size of chemical space,
 
 Our work builds on these developments by designing an integrated GNN pipeline specifically for PD drug discovery. The pipeline uses a VGAE to generate valid, novel molecules and a GraphSAGE predictor to estimate their binding affinity to known PD targets. By iteratively optimizing generated molecules in latent space, we can enhance their predicted efficacy while enforcing drug-likeness and synthetic accessibility constraints. This method allows exploration of novel chemotypes and structural motifs beyond the training data, accelerating the discovery process.
 
-Methods
+### Methods
 
-Datasets
+#### Datasets
 
 ChEMBL v35: Curated subset of molecules with measured binding affinity against PD targets such as MAO-B and A2A receptor.
 
 ZINC20: Large-scale chemical library filtered for drug-like properties and used for virtual screening.
 
-Data Preprocessing
+#### Data Preprocessing
 
 Molecules were represented as undirected graphs using RDKit. Atom and bond features were encoded to capture chemical properties. Protein targets were processed into residue graphs from PDB structures. Interaction graphs between ligand atoms and protein residues were constructed for affinity prediction.
 
@@ -54,7 +52,7 @@ Performed gradient ascent in latent space to increase predicted binding affinity
 
 Applied drug-likeness and synthetic filters (QED, MW, SA score, PAINS).
 
-Experimental Results
+#### Experimental Results
 
 Prediction Model
 
@@ -94,7 +92,7 @@ Retained drug-like properties post-optimization.
 
 Final candidates included novel scaffolds with high synthetic accessibility.
 
-Discussion
+### Discussion
 
 Our results demonstrate that combining VGAEs and GNN predictors enables efficient traversal of chemical space for PD drug discovery. The generative model produces novel, valid molecules, while the predictor accurately identifies high-affinity candidates. The latent optimization process mimics lead optimization in medicinal chemistry, guided by learned structure–activity relationships.
 
